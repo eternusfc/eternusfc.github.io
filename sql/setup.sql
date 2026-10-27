@@ -41,3 +41,15 @@ create policy "fotos leitura" on storage.objects for select using (bucket_id = '
 create policy "fotos admin insere" on storage.objects for insert to authenticated with check (bucket_id = 'fotos');
 create policy "fotos admin altera" on storage.objects for update to authenticated using (bucket_id = 'fotos');
 create policy "fotos admin apaga" on storage.objects for delete to authenticated using (bucket_id = 'fotos');
+
+-- Configurações do site (logo do time)
+create table if not exists public.configuracoes (
+  id int primary key check (id = 1),
+  logo_url text
+);
+insert into public.configuracoes (id) values (1) on conflict do nothing;
+alter table public.configuracoes enable row level security;
+drop policy if exists "leitura publica config" on public.configuracoes;
+drop policy if exists "admin escreve config" on public.configuracoes;
+create policy "leitura publica config" on public.configuracoes for select using (true);
+create policy "admin escreve config" on public.configuracoes for all to authenticated using (true) with check (true);

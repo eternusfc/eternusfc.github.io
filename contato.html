@@ -1,13 +1,11 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Contato – Eternus FC</title><link rel="stylesheet" href="assets/style.css"></head><body>
 <header id="nav"></header>
 <main><h2>Contato</h2><dl id="info"><p class="vazio">Carregando…</p></dl></main>
-<footer>© Eternus FC · Futsal</footer>
+<footer><a href="admin/index.html">Admin</a></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="assets/config.js"></script><script src="assets/app.js"></script><script>
 nav(false,'contato');
 (async()=>{
   const {data,error}=await sb.from('contato').select('*').eq('id',1).maybeSingle();
-  const el=document.getElementById('info');
-  const h=data&&linksContato(data);
-  el.innerHTML=error?'<p class="vazio">Não foi possível carregar os contatos.</p>':(h||'<p class="vazio">Contatos em breve.</p>');
+  info.innerHTML=error?'<p class="vazio">Não foi possível carregar os contatos.</p>':((data&&linksContato(data))||'<p class="vazio">Contatos em breve.</p>');
 })();
 </script></body></html>

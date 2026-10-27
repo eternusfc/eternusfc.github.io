@@ -1,15 +1,17 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Elenco – Eternus FC</title><link rel="stylesheet" href="assets/style.css"></head><body>
 <header id="nav"></header>
-<main><h2>Elenco</h2><div id="lista"><p class="vazio">Carregando…</p></div></main>
-<footer>© Eternus FC · Futsal</footer>
+<main><h2>Elenco</h2><div id="lista" class="grid"><p class="vazio">Carregando…</p></div></main>
+<dialog id="dlg"></dialog>
+<footer><a href="admin/index.html">Admin</a></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="assets/config.js"></script><script src="assets/app.js"></script><script>
 nav(false,'elenco');
+let J=[];
 (async()=>{
   const {data,error}=await sb.from('jogadores').select('*').eq('ativo',true).order('numero',{nullsFirst:false});
-  const el=document.getElementById('lista');
-  if(error) return el.innerHTML='<p class="vazio">Não foi possível carregar o elenco.</p>';
-  if(!data.length) return el.innerHTML='<p class="vazio">Elenco em breve.</p>';
-  el.innerHTML=POSICOES.map(p=>{const js=data.filter(j=>j.posicao===p);
-    return js.length?'<section class="grupo"><h2>'+p+(p==='Técnico'?'':'s')+'</h2><div class="grid">'+js.map(cartaoJogador).join('')+'</div></section>':''}).join('');
+  if(error) return lista.innerHTML='<p class="vazio">Não foi possível carregar o elenco.</p>';
+  J=data;
+  lista.innerHTML=J.length?J.map(cartaoJogador).join(''):'<p class="vazio">Elenco em breve.</p>';
 })();
+lista.onclick=e=>{const c=e.target.closest('.card');if(!c)return;dlg.innerHTML=detalhesJogador(J.find(x=>x.id==c.dataset.id));dlg.showModal()};
+dlg.onclick=e=>{if(e.target===dlg||e.target.closest('.fechar'))dlg.close()};
 </script></body></html>

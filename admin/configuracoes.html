@@ -1,0 +1,39 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Configurações – Admin Eternus FC</title><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header id="nav"></header>
+<main><h2>Configurações</h2>
+<form id="f" class="box">
+<label>Logo do time<span class="foto-campo"><span class="vazia" id="prev"></span><input id="arq" type="file" accept="image/*"></span></label>
+<small class="dica">PNG com fundo transparente fica melhor. Aparece no menu, na página inicial e na aba do navegador.</small>
+<div class="acoes"><button class="btn" id="salvar">Salvar logo</button><button type="button" class="btn sec" id="remover" hidden>Remover logo</button></div>
+</form></main><div id="aviso" class="aviso" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="../assets/config.js"></script><script src="../assets/app.js"></script><script>
+nav(true,'config');
+let atual=null;
+function previa(url){prev.outerHTML=url?'<img id="prev" alt="Logo" src="'+esc(url)+'">':'<span class="vazia" id="prev"></span>';remover.hidden=!atual}
+arq.onchange=()=>{const a=arq.files[0];previa(a?URL.createObjectURL(a):atual)};
+exigeLogin().then(async()=>{
+  const {data}=await sb.from('configuracoes').select('logo_url').eq('id',1).maybeSingle();
+  atual=data?.logo_url||null;previa(atual)});
+async function apagarArquivo(url){const c=caminhoFoto(url);if(c)await sb.storage.from('fotos').remove([c])}
+f.onsubmit=async e=>{e.preventDefault();
+  if(!arq.files[0]) return aviso('Escolha uma imagem primeiro.',true);
+  salvar.disabled=true;
+  try{
+    const blob=await comprimir(arq.files[0],512,'image/png'),caminho='logo/'+crypto.randomUUID()+'.png';
+    const up=await sb.storage.from('fotos').upload(caminho,blob,{contentType:'image/png'});
+    if(up.error) throw up.error;
+    const url=sb.storage.from('fotos').getPublicUrl(caminho).data.publicUrl;
+    const {error}=await sb.from('configuracoes').upsert({id:1,logo_url:url});
+    if(error){await sb.storage.from('fotos').remove([caminho]);throw error}
+    await apagarArquivo(atual);atual=url;arq.value='';previa(url);aplicarLogo(url);
+    try{localStorage.setItem('logo',url)}catch(e){}
+    aviso('Logo salvo.');
+  }catch(err){aviso('Erro ao salvar: '+err.message,true)}
+  salvar.disabled=false};
+remover.onclick=async()=>{
+  const {error}=await sb.from('configuracoes').upsert({id:1,logo_url:null});
+  if(error) return aviso('Erro ao remover: '+error.message,true);
+  await apagarArquivo(atual);atual=null;arq.value='';previa(null);aplicarLogo(null);
+  try{localStorage.removeItem('logo')}catch(e){}
+  aviso('Logo removido.')};
+</script></body></html>
