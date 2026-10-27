@@ -1,0 +1,54 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Desejos – Admin Eternus FC</title><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header id="nav"></header>
+<main><div class="topo"><h2>Financeiro</h2><button class="btn" id="novo">Novo item</button></div>
+<div class="abas"><a href="financeiro.html">Movimentações</a><a href="desejos.html" aria-current="page">Lista de desejos</a></div>
+<div class="resumo"><div><small>Total desejado</small><strong id="total">–</strong></div><div><small>Saldo do time</small><span id="saldo">–</span></div><div><small>Faltam</small><span id="falta">–</span></div></div>
+<ul class="lista" id="lista"></ul></main>
+
+<div class="modal" id="m" hidden><form class="painel" id="f">
+  <div class="painel-topo"><h3 id="titulo">Novo item</h3><button type="button" class="x" data-fechar aria-label="Fechar">×</button></div>
+  <div class="painel-corpo">
+    <label>Item<input id="item" required placeholder="Ex.: jogo de coletes" autocomplete="off"></label>
+    <label>Valor (R&#36;)<input id="valor" type="number" min="0" step="0.01" inputmode="decimal" required></label>
+  </div>
+  <div class="painel-rodape"><button type="button" class="btn perigo esq" id="excluir" hidden>Excluir</button><button type="button" class="btn sec" data-fechar>Cancelar</button><button class="btn" id="salvar">Salvar</button></div>
+</form></div>
+<div id="aviso" class="aviso" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="../assets/config.js"></script><script src="../assets/app.js"></script><script>
+nav(true,'financeiro');
+let itens=[],atual=null,saldoTime=0;
+function resumo(){
+  const t=itens.filter(i=>!i.comprado).reduce((a,i)=>a+ +i.valor,0);
+  total.textContent=brl(t);saldo.textContent=brl(saldoTime);falta.textContent=brl(Math.max(0,t-saldoTime));
+}
+async function carregar(){
+  const [d,m]=await Promise.all([sb.from('desejos').select('*').order('comprado').order('valor',{ascending:false}),sb.from('movimentacoes').select('tipo,valor')]);
+  if(d.error) return aviso('Erro ao carregar: '+d.error.message,true);
+  itens=d.data;saldoTime=(m.data||[]).reduce((a,x)=>a+(x.tipo==='entrada'?1:-1)*x.valor,0);
+  resumo();
+  lista.innerHTML=itens.length?itens.map(i=>'<li class="'+(i.comprado?'feito':'')+'"><input type="checkbox" data-c="'+i.id+'" aria-label="Comprado" '+(i.comprado?'checked':'')+'><div class="nome clic" data-id="'+i.id+'">'+esc(i.item)+(i.comprado?'<small>comprado</small>':'')+'</div><span class="val">'+brl(i.valor)+'</span></li>').join(''):'<p class="vazio">Nenhum item ainda. Toque em “Novo item”.</p>';
+}
+function abrir(i){
+  atual=i||null;f.reset();titulo.textContent=i?'Editar item':'Novo item';excluir.hidden=!i;
+  item.value=i?.item??'';valor.value=i?.valor??'';abrirModal('m');
+}
+novo.onclick=()=>abrir(null);
+lista.onclick=async e=>{
+  const c=e.target.dataset.c,n=e.target.closest('.nome[data-id]');
+  if(n) abrir(itens.find(x=>x.id==n.dataset.id));
+  if(c){const {error}=await sb.from('desejos').update({comprado:e.target.checked}).eq('id',c);
+    if(error){aviso('Erro: '+error.message,true)}carregar()}};
+f.onsubmit=async e=>{e.preventDefault();
+  salvar.disabled=true;
+  const d={item:item.value.trim(),valor:+valor.value};
+  const {error}=atual?await sb.from('desejos').update(d).eq('id',atual.id):await sb.from('desejos').insert(d);
+  salvar.disabled=false;
+  if(error) return aviso('Erro ao salvar: '+error.message,true);
+  aviso('Item salvo.');fecharModal('m');carregar()};
+excluir.onclick=async()=>{
+  if(!confirm('Excluir este item?'))return;
+  const {error}=await sb.from('desejos').delete().eq('id',atual.id);
+  if(error) return aviso('Erro ao excluir: '+error.message,true);
+  aviso('Item excluído.');fecharModal('m');carregar()};
+exigeLogin().then(carregar);
+</script></body></html>

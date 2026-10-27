@@ -8,12 +8,15 @@ const caminhoFoto = url => (url || '').split('/object/public/fotos/')[1] || null
 /* ---------- menu e logo ---------- */
 function nav(admin, ativo) {
   const links = admin
-    ? [['elenco', 'Elenco', 'elenco.html'], ['contato', 'Contato', 'contato.html'], ['config', 'Configurações', 'configuracoes.html']]
+    ? [['elenco', 'Elenco', 'elenco.html'], ['contato', 'Contato', 'contato.html'], ['financeiro', 'Financeiro', 'financeiro.html'], ['config', 'Configurações', 'configuracoes.html']]
     : [['home', 'Início', 'index.html'], ['elenco', 'Elenco', 'elenco.html'], ['contato', 'Contato', 'contato.html']];
   document.getElementById('nav').innerHTML =
-    `<a class="logo" href="${admin ? '../index.html' : 'index.html'}"><span class="marca"></span>ETERNUS<b>FC</b>${admin ? '<small>admin</small>' : ''}</a><nav>` +
+    `<a class="logo" href="${admin ? '../index.html' : 'index.html'}"><span class="marca"></span>ETERNUS<b>FC</b>${admin ? '<small>admin</small>' : ''}</a>
+    <button class="burger" aria-label="Menu" aria-expanded="false" aria-controls="menu"><i></i><i></i><i></i></button><nav id="menu">` +
     links.map(([k, t, h]) => `<a href="${h}" ${k === ativo ? 'aria-current="page"' : ''}>${t}</a>`).join('') +
     (admin ? '<button id="sair" class="link">Sair</button>' : '') + '</nav>';
+  const b = document.querySelector('.burger'), m = document.getElementById('menu');
+  b.onclick = () => b.setAttribute('aria-expanded', m.classList.toggle('aberto'));
   if (admin) document.getElementById('sair').onclick = async () => { await sb.auth.signOut(); location.replace('index.html'); };
   carregarLogo();
 }
@@ -69,7 +72,7 @@ function cartaoJogador(j) {
 function detalhesJogador(j) {
   const l = [['Posição', j.posicao], ['Número', j.numero], ['Idade', j.idade && j.idade + ' anos'], ['Altura', j.altura_cm && fmtAltura(j.altura_cm)], ['Pé dominante', j.pe_dominante]]
     .filter(x => x[1]).map(([a, b]) => `<div class="det"><span>${a}</span><span>${esc(b)}</span></div>`).join('');
-  return `<button class="fechar" aria-label="Fechar">×</button>
+  return `<button class="fechar" aria-label="Fechar" data-fechar>×</button>
     ${j.foto_url ? `<img src="${esc(j.foto_url)}" alt="">` : `<div class="ini">${esc(iniciais(j.nome))}</div>`}
     <div class="corpo"><h3>${esc(j.nome)}</h3>${l}</div>`;
 }
@@ -102,3 +105,26 @@ function linksContato(c) {
   if (c.treinos) it.push(['Treinos', c.treinos, null]);
   return it.map(([t, v, h]) => `<div class="info"><dt>${t}</dt><dd>${h ? `<a href="${esc(h)}" target="_blank" rel="noopener">${esc(v)}</a>` : esc(v)}</dd></div>`).join('');
 }
+
+/* ---------- pop-ups do site ---------- */
+function abrirModal(id) {
+  document.getElementById(id).hidden = false;
+  document.body.classList.add('travado');
+  const c = document.querySelector('#' + id + ' input:not([type=hidden]):not([type=file]):not([type=radio])');
+  if (c && !matchMedia('(pointer:coarse)').matches) c.focus();
+}
+function fecharModal(id) {
+  document.getElementById(id).hidden = true;
+  if (!document.querySelector('.modal:not([hidden])')) document.body.classList.remove('travado');
+}
+document.addEventListener('click', e => {
+  const m = e.target.closest('.modal');
+  if (m && (e.target === m || e.target.closest('[data-fechar]'))) fecharModal(m.id);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal:not([hidden])').forEach(m => fecharModal(m.id));
+});
+
+/* ---------- dinheiro e datas ---------- */
+const brl = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const dataBR = d => d ? d.split('-').reverse().join('/') : '';

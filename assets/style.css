@@ -45,17 +45,12 @@ footer a{color:var(--cinza);text-decoration:none}footer a:hover{color:var(--text
 /* elenco público */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:20px 14px}
 .card{background:none;border:0;padding:0;text-align:left;color:inherit;font:inherit;cursor:pointer}
-.card img,.card .ini,dialog>img,dialog>.ini{width:100%;aspect-ratio:4/5;object-fit:cover;display:grid;place-items:center;background:var(--suave);color:var(--claro);font:600 28px 'Inter';border-radius:var(--r);transition:opacity .15s}
+.card img,.card .ini,.painel>img,.painel>.ini{width:100%;aspect-ratio:4/5;object-fit:cover;display:grid;place-items:center;background:var(--suave);color:var(--claro);font:600 28px 'Inter';border-radius:var(--r);transition:opacity .15s}
 .card:hover img,.card:hover .ini{opacity:.85}
 .card h3{font-size:14px;font-weight:600;margin:8px 0 0;letter-spacing:0}
 .card p{margin:0;color:var(--cinza);font-size:13px}
 
 /* janela de detalhes e formulário */
-dialog{background:var(--suave);color:var(--texto);border:1px solid var(--linha);border-radius:14px;padding:0;width:min(340px,92vw);max-height:92vh;overflow:auto}
-dialog::backdrop{background:rgba(0,0,0,.7)}
-dialog>img,dialog>.ini{border-radius:0;aspect-ratio:1}
-dialog .corpo{padding:16px 18px 18px}
-dialog h3{font-size:20px;margin-bottom:8px}
 .fechar{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:20px;cursor:pointer;z-index:1}
 .det{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--linha);font-size:14px}
 .det span:first-child{color:var(--cinza)}
@@ -68,14 +63,12 @@ dl{margin:0}
 
 /* formulários */
 form.box{display:grid;gap:14px;max-width:440px}
-dialog form{padding:20px;display:grid;gap:14px}
 .par{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.par.dois{grid-template-columns:1fr 1fr}
 label{display:grid;gap:5px;font-size:13px;color:var(--cinza)}
 input,select,textarea{font:400 14px 'Inter';color:var(--texto);padding:9px 11px;border:1px solid var(--linha);border-radius:var(--r);background:var(--fundo);width:100%}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--claro)}
 .chk{display:flex;align-items:center;gap:8px}.chk input{width:auto;accent-color:var(--claro)}
 input[type=file]{padding:6px;font-size:13px}
-input[type=file]::file-selector-button{background:var(--linha);color:var(--texto);border:0;border-radius:4px;padding:5px 10px;margin-right:8px;cursor:pointer;font:500 13px 'Inter'}
 .foto-campo{display:flex;align-items:center;gap:12px}
 .foto-campo img,.foto-campo .vazia{width:48px;height:48px;object-fit:contain;border-radius:var(--r);background:var(--fundo);border:1px solid var(--linha);flex:none}
 .acoes{display:flex;gap:8px}
@@ -105,3 +98,65 @@ small.dica{color:var(--cinza);font-size:13px}
   .btn{padding:11px 16px}.btn.mini{padding:8px 12px}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- pop-up ---------- */
+body.travado{overflow:hidden}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px;animation:fade .15s}
+.painel{position:relative;background:var(--suave);border:1px solid var(--linha);border-radius:16px;width:min(420px,100%);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;overflow:hidden;animation:sobe .2s ease-out}
+.painel>img,.painel>.ini{border-radius:0;aspect-ratio:1;flex:none;font-size:48px}
+.painel .corpo{padding:16px 20px 20px;overflow:auto}
+.painel h3{font-size:20px;margin-bottom:8px}
+.painel-topo{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--linha);flex:none}
+.painel-topo h3{margin:0;font-size:17px}
+.x{background:none;border:0;color:var(--cinza);font-size:24px;line-height:1;cursor:pointer;padding:0 4px}.x:hover{color:var(--texto)}
+.painel-corpo{padding:20px;overflow:auto;display:grid;gap:14px}
+.painel-rodape{padding:14px 20px;border-top:1px solid var(--linha);display:flex;gap:8px;justify-content:flex-end;flex:none}
+.painel-rodape .esq{margin-right:auto}
+.painel .foto-campo{gap:14px}
+.painel .foto-campo img,.painel .foto-campo .vazia{width:72px;height:72px;border-radius:50%;object-fit:cover}
+.foto-campo input[type=file]{display:none}
+@keyframes fade{from{opacity:0}}
+@keyframes sobe{from{transform:translateY(16px);opacity:0}}
+
+/* seletor entrada/saída */
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;background:var(--fundo);border:1px solid var(--linha);border-radius:var(--r)}
+.seg label{position:relative;text-align:center;padding:8px;border-radius:6px;cursor:pointer;color:var(--cinza);font-size:14px;font-weight:500}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--bordo);color:#fff}
+.seg label:has(input:focus-visible){outline:2px solid var(--claro)}
+
+/* financeiro */
+.abas{display:flex;gap:20px;border-bottom:1px solid var(--linha);margin-bottom:20px}
+.abas a{padding:8px 0;color:var(--cinza);text-decoration:none;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.abas a[aria-current]{color:var(--texto);border-color:var(--claro)}
+.resumo{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.resumo div{background:var(--suave);border-radius:var(--r);padding:12px 14px}
+.resumo small{display:block;color:var(--cinza);font-size:12px}
+.resumo strong,.resumo span{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.resumo strong{font-size:19px}
+.lista li.clic{cursor:pointer}.lista li.clic:hover .nome{color:var(--claro)}
+.val{font-weight:600;white-space:nowrap}.val.saida{color:var(--claro)}
+.lista .feito .nome{text-decoration:line-through;color:var(--cinza)}.lista .feito .val{color:var(--cinza)}
+.lista input[type=checkbox]{width:20px;height:20px;accent-color:var(--claro);flex:none}
+.oculto-campo{display:none}
+
+/* ---------- menu responsivo ---------- */
+header{padding:0 5vw}
+.burger{display:none;background:none;border:0;width:40px;height:40px;cursor:pointer;flex-direction:column;justify-content:center;align-items:center;gap:5px;padding:0;margin-right:-8px}
+.burger i{display:block;width:20px;height:2px;background:var(--texto);border-radius:2px;transition:transform .2s,opacity .2s}
+.burger[aria-expanded=true] i:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.burger[aria-expanded=true] i:nth-child(2){opacity:0}
+.burger[aria-expanded=true] i:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+@media(max-width:720px){
+  .burger{display:flex}
+  header nav{display:none;position:absolute;top:56px;left:0;right:0;flex-direction:column;gap:0;padding:6px 0 10px;background:var(--fundo);border-bottom:1px solid var(--linha)}
+  header nav.aberto{display:flex}
+  header nav a,header nav .link{padding:14px 5vw;border-radius:0;text-align:left;font-size:16px;width:100%}
+  header nav a[aria-current]{box-shadow:inset 3px 0 var(--claro)}
+}
+@media(max-width:560px){
+  .modal{align-items:flex-end;padding:0}
+  .painel{width:100%;border-radius:16px 16px 0 0;max-height:92dvh}
+  .resumo{grid-template-columns:1fr 1fr}.resumo div:first-child{grid-column:1/-1}
+  .painel-rodape .btn{flex:1}
+}

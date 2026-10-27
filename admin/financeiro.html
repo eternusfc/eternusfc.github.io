@@ -1,0 +1,71 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Financeiro – Admin Eternus FC</title><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header id="nav"></header>
+<main><div class="topo"><h2>Financeiro</h2><button class="btn" id="novo">Nova movimentação</button></div>
+<div class="abas"><a href="financeiro.html" aria-current="page">Movimentações</a><a href="desejos.html">Lista de desejos</a></div>
+<div class="resumo"><div><small>Saldo</small><strong id="saldo">–</strong></div><div><small>Entradas</small><span id="ent">–</span></div><div><small>Saídas</small><span id="sai">–</span></div></div>
+<ul class="lista" id="lista"></ul></main>
+
+<div class="modal" id="m" hidden><form class="painel" id="f">
+  <div class="painel-topo"><h3 id="titulo">Nova movimentação</h3><button type="button" class="x" data-fechar aria-label="Fechar">×</button></div>
+  <div class="painel-corpo">
+    <div class="seg"><label><input type="radio" name="tipo" value="entrada" checked>Entrada</label><label><input type="radio" name="tipo" value="saida">Saída</label></div>
+    <div class="par dois"><label>Valor (R&#36;)<input id="valor" type="number" min="0.01" step="0.01" inputmode="decimal" required></label>
+    <label>Data<input id="data" type="date" required></label></div>
+    <label>Descrição<input id="descricao" placeholder="Ex.: mensalidade, bola nova" autocomplete="off"></label>
+    <label>Quem<select id="quem"><option value="time">O time</option><option value="jogador">Alguém do time</option><option value="externo">Alguém de fora</option></select></label>
+    <label id="lj" class="oculto-campo">Jogador<select id="qjog"></select></label>
+    <label id="le" class="oculto-campo">Nome da pessoa<input id="qext" autocomplete="off"></label>
+  </div>
+  <div class="painel-rodape"><button type="button" class="btn perigo esq" id="excluir" hidden>Excluir</button><button type="button" class="btn sec" data-fechar>Cancelar</button><button class="btn" id="salvar">Salvar</button></div>
+</form></div>
+<div id="aviso" class="aviso" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="../assets/config.js"></script><script src="../assets/app.js"></script><script>
+nav(true,'financeiro');
+let itens=[],atual=null;
+const tipoSel=()=>document.querySelector('input[name=tipo]:checked').value;
+function quemCampos(){
+  const q=quem.value;
+  lj.classList.toggle('oculto-campo',q!=='jogador');le.classList.toggle('oculto-campo',q!=='externo');
+  qjog.required=q==='jogador';qext.required=q==='externo';
+}
+quem.onchange=quemCampos;
+const rotuloQuem=m=>m.quem_tipo==='time'?'Time':(m.quem_tipo==='externo'?esc(m.quem_nome)+' (de fora)':esc(m.quem_nome));
+
+async function carregar(){
+  const {data,error}=await sb.from('movimentacoes').select('*').order('data',{ascending:false}).order('id',{ascending:false});
+  if(error) return aviso('Erro ao carregar: '+error.message,true);
+  itens=data;
+  let e=0,s=0;data.forEach(m=>m.tipo==='entrada'?e+=+m.valor:s+=+m.valor);
+  ent.textContent=brl(e);sai.textContent=brl(s);saldo.textContent=brl(e-s);
+  lista.innerHTML=data.length?data.map(m=>'<li class="clic" data-id="'+m.id+'"><div class="nome">'+(esc(m.descricao)||(m.tipo==='entrada'?'Entrada':'Saída'))+'<small>'+dataBR(m.data)+' · '+rotuloQuem(m)+'</small></div><span class="val '+m.tipo+'">'+(m.tipo==='entrada'?'+':'−')+brl(m.valor)+'</span></li>').join(''):'<p class="vazio">Nenhuma movimentação ainda.</p>';
+}
+async function carregarJogadores(){
+  const {data}=await sb.from('jogadores').select('nome').order('nome');
+  qjog.innerHTML=(data&&data.length)?data.map(j=>'<option>'+esc(j.nome)+'</option>').join(''):'<option value="">Nenhum jogador cadastrado</option>';
+}
+function abrir(m){
+  atual=m||null;f.reset();titulo.textContent=m?'Editar movimentação':'Nova movimentação';excluir.hidden=!m;
+  data.value=m?.data??new Date().toISOString().slice(0,10);
+  if(m){document.querySelector('input[name=tipo][value='+m.tipo+']').checked=true;valor.value=m.valor;descricao.value=m.descricao??'';quem.value=m.quem_tipo;
+    if(m.quem_tipo==='jogador'){if(![...qjog.options].some(o=>o.value===m.quem_nome))qjog.add(new Option(m.quem_nome));qjog.value=m.quem_nome}
+    if(m.quem_tipo==='externo')qext.value=m.quem_nome??''}
+  quemCampos();abrirModal('m');
+}
+novo.onclick=()=>abrir(null);
+lista.onclick=e=>{const li=e.target.closest('li[data-id]');if(li)abrir(itens.find(x=>x.id==li.dataset.id))};
+
+f.onsubmit=async e=>{e.preventDefault();
+  salvar.disabled=true;
+  const q=quem.value;
+  const d={tipo:tipoSel(),valor:+valor.value,data:data.value,descricao:descricao.value.trim()||null,quem_tipo:q,quem_nome:q==='jogador'?qjog.value:(q==='externo'?qext.value.trim():null)};
+  const {error}=atual?await sb.from('movimentacoes').update(d).eq('id',atual.id):await sb.from('movimentacoes').insert(d);
+  salvar.disabled=false;
+  if(error) return aviso('Erro ao salvar: '+error.message,true);
+  aviso('Movimentação salva.');fecharModal('m');carregar()};
+excluir.onclick=async()=>{
+  if(!confirm('Excluir esta movimentação?'))return;
+  const {error}=await sb.from('movimentacoes').delete().eq('id',atual.id);
+  if(error) return aviso('Erro ao excluir: '+error.message,true);
+  aviso('Movimentação excluída.');fecharModal('m');carregar()};
+exigeLogin().then(()=>{carregarJogadores();carregar()});
+</script></body></html>

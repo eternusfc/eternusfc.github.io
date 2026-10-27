@@ -53,3 +53,28 @@ drop policy if exists "leitura publica config" on public.configuracoes;
 drop policy if exists "admin escreve config" on public.configuracoes;
 create policy "leitura publica config" on public.configuracoes for select using (true);
 create policy "admin escreve config" on public.configuracoes for all to authenticated using (true) with check (true);
+
+-- Financeiro (somente o admin acessa)
+create table if not exists public.movimentacoes (
+  id bigint generated always as identity primary key,
+  tipo text not null check (tipo in ('entrada','saida')),
+  valor numeric(12,2) not null check (valor > 0),
+  descricao text,
+  data date not null default current_date,
+  quem_tipo text not null default 'time' check (quem_tipo in ('time','jogador','externo')),
+  quem_nome text,
+  criado_em timestamptz default now()
+);
+create table if not exists public.desejos (
+  id bigint generated always as identity primary key,
+  item text not null,
+  valor numeric(12,2) not null default 0,
+  comprado boolean not null default false,
+  criado_em timestamptz default now()
+);
+alter table public.movimentacoes enable row level security;
+alter table public.desejos enable row level security;
+drop policy if exists "admin movimentacoes" on public.movimentacoes;
+drop policy if exists "admin desejos" on public.desejos;
+create policy "admin movimentacoes" on public.movimentacoes for all to authenticated using (true) with check (true);
+create policy "admin desejos" on public.desejos for all to authenticated using (true) with check (true);
