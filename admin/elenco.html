@@ -1,36 +1,65 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet"><title>Elenco – Admin Eternus FC</title><link rel="stylesheet" href="../assets/style.css"></head><body>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Elenco – Admin Eternus FC</title><link rel="stylesheet" href="../assets/style.css"></head><body>
 <header id="nav"></header>
 <main><h2>Editar elenco</h2>
 <form id="f" class="box linha">
 <label>Nome<input id="nome" required></label>
-<label>Número<input id="numero" type="number" min="0" max="99"></label>
+<label>Número<input id="numero" type="number" min="0" max="99" inputmode="numeric"></label>
+<label>Idade<input id="idade" type="number" min="10" max="70" inputmode="numeric"></label>
+<label>Altura (cm)<input id="altura" type="number" min="120" max="230" inputmode="numeric" placeholder="178"></label>
+<label>Pé dominante<select id="pe"><option value="">—</option></select></label>
 <label>Posição<select id="posicao"></select></label>
-<label>URL da foto<input id="foto" type="url" placeholder="https://…"></label>
+<label>Foto<span class="foto-campo"><span class="vazia" id="prev"></span><input id="foto" type="file" accept="image/*"></span></label>
 <label class="chk"><input id="ativo" type="checkbox" checked> Aparece no site</label>
 <div><button class="btn" id="salvar">Adicionar jogador</button> <button type="button" class="btn sec" id="cancelar" hidden>Cancelar</button></div>
 </form>
-<div class="tabela"><table><thead><tr><th>Nº</th><th>Nome</th><th>Posição</th><th>No site</th><th></th></tr></thead><tbody id="corpo"></tbody></table></div>
+<div class="tabela"><table><thead><tr><th>Nº</th><th>Nome</th><th>Posição</th><th>Idade</th><th>Altura</th><th>Pé</th><th>No site</th><th></th></tr></thead><tbody id="corpo"></tbody></table></div>
 </main><div id="aviso" class="aviso" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="../assets/config.js"></script><script src="../assets/app.js"></script><script>
 nav(true,'elenco');
-let lista=[],editId=null;
+let lista=[],atual=null;
 posicao.innerHTML=POSICOES.map(p=>'<option>'+p+'</option>').join('');
+pe.innerHTML+=PES.map(p=>'<option>'+p+'</option>').join('');
+
+function previa(url){prev.outerHTML=url?'<img id="prev" alt="Prévia" src="'+esc(url)+'">':'<span class="vazia" id="prev"></span>'}
+foto.onchange=()=>{const a=foto.files[0];previa(a?URL.createObjectURL(a):atual?.foto_url)};
+
 async function carregar(){
   const {data,error}=await sb.from('jogadores').select('*').order('numero',{nullsFirst:false});
   if(error) return aviso('Erro ao carregar: '+error.message,true);
   lista=data;
-  corpo.innerHTML=data.length?data.map(j=>'<tr><td>'+esc(j.numero??'–')+'</td><td>'+esc(j.nome)+'</td><td>'+esc(j.posicao)+'</td><td>'+(j.ativo?'Sim':'Não')+'</td><td class="acoes"><button class="btn mini sec" data-e="'+j.id+'">Editar</button><button class="btn mini perigo" data-d="'+j.id+'">Excluir</button></td></tr>').join(''):'<tr><td colspan="5" class="vazio">Nenhum jogador cadastrado. Use o formulário acima.</td></tr>';
+  corpo.innerHTML=data.length?data.map(j=>'<tr><td data-l="Nº">'+esc(j.numero??'–')+'</td><td data-l="Nome">'+esc(j.nome)+'</td><td data-l="Posição">'+esc(j.posicao)+'</td><td data-l="Idade">'+esc(j.idade??'–')+'</td><td data-l="Altura">'+(j.altura_cm?fmtAltura(j.altura_cm):'–')+'</td><td data-l="Pé">'+esc(j.pe_dominante??'–')+'</td><td data-l="No site">'+(j.ativo?'Sim':'Não')+'</td><td class="acoes"><button class="btn mini sec" data-e="'+j.id+'">Editar</button><button class="btn mini perigo" data-d="'+j.id+'">Excluir</button></td></tr>').join(''):'<tr><td colspan="8" class="vazio">Nenhum jogador cadastrado. Use o formulário acima.</td></tr>';
 }
-function limpar(){editId=null;f.reset();ativo.checked=true;salvar.textContent='Adicionar jogador';cancelar.hidden=true}
+function limpar(){atual=null;f.reset();ativo.checked=true;previa(null);salvar.textContent='Adicionar jogador';cancelar.hidden=true}
 cancelar.onclick=limpar;
+const num=el=>el.value===''?null:+el.value;
+
 f.onsubmit=async e=>{e.preventDefault();
-  const d={nome:nome.value.trim(),numero:numero.value===''?null:+numero.value,posicao:posicao.value,foto_url:foto.value.trim()||null,ativo:ativo.checked};
-  const {error}=editId?await sb.from('jogadores').update(d).eq('id',editId):await sb.from('jogadores').insert(d);
-  if(error) return aviso('Erro ao salvar: '+error.message,true);
-  aviso(editId?'Jogador atualizado.':'Jogador adicionado.');limpar();carregar()};
+  salvar.disabled=true;
+  try{
+    const d={nome:nome.value.trim(),numero:num(numero),idade:num(idade),altura_cm:num(altura),pe_dominante:pe.value||null,posicao:posicao.value,ativo:ativo.checked,foto_url:atual?.foto_url??null};
+    let novoCaminho=null;
+    if(foto.files[0]){
+      const blob=await comprimir(foto.files[0]);
+      novoCaminho='jogadores/'+crypto.randomUUID()+'.jpg';
+      const up=await sb.storage.from('fotos').upload(novoCaminho,blob,{contentType:'image/jpeg'});
+      if(up.error) throw up.error;
+      d.foto_url=sb.storage.from('fotos').getPublicUrl(novoCaminho).data.publicUrl;
+    }
+    const {error}=atual?await sb.from('jogadores').update(d).eq('id',atual.id):await sb.from('jogadores').insert(d);
+    if(error){ if(novoCaminho) await sb.storage.from('fotos').remove([novoCaminho]); throw error; }
+    const antigo=novoCaminho&&caminhoFoto(atual?.foto_url);
+    if(antigo) await sb.storage.from('fotos').remove([antigo]);
+    aviso(atual?'Jogador atualizado.':'Jogador adicionado.');limpar();carregar();
+  }catch(err){aviso('Erro ao salvar: '+err.message,true)}
+  salvar.disabled=false};
+
 corpo.onclick=async e=>{
   const ed=e.target.dataset.e,del=e.target.dataset.d;
-  if(ed){const j=lista.find(x=>x.id==ed);editId=j.id;nome.value=j.nome;numero.value=j.numero??'';posicao.value=j.posicao;foto.value=j.foto_url??'';ativo.checked=j.ativo;salvar.textContent='Salvar alterações';cancelar.hidden=false;nome.focus();scrollTo({top:0,behavior:'smooth'})}
-  if(del&&confirm('Excluir este jogador?')){const {error}=await sb.from('jogadores').delete().eq('id',del);error?aviso('Erro ao excluir: '+error.message,true):(aviso('Jogador excluído.'),carregar())}};
+  if(ed){const j=lista.find(x=>x.id==ed);atual=j;nome.value=j.nome;numero.value=j.numero??'';idade.value=j.idade??'';altura.value=j.altura_cm??'';pe.value=j.pe_dominante??'';posicao.value=j.posicao;ativo.checked=j.ativo;foto.value='';previa(j.foto_url);salvar.textContent='Salvar alterações';cancelar.hidden=false;nome.focus();scrollTo({top:0,behavior:'smooth'})}
+  if(del&&confirm('Excluir este jogador?')){
+    const j=lista.find(x=>x.id==del),{error}=await sb.from('jogadores').delete().eq('id',del);
+    if(error) return aviso('Erro ao excluir: '+error.message,true);
+    const c=caminhoFoto(j.foto_url); if(c) await sb.storage.from('fotos').remove([c]);
+    aviso('Jogador excluído.');carregar()}};
 exigeLogin().then(carregar);
 </script></body></html>

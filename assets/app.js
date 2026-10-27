@@ -34,12 +34,33 @@ function aviso(msg, erro) {
   clearTimeout(aviso.t); aviso.t = setTimeout(() => el.hidden = true, 4000);
 }
 
+const PES = ['Direito', 'Esquerdo', 'Ambidestro'];
+const fmtAltura = cm => (cm / 100).toFixed(2).replace('.', ',') + ' m';
+
 function cartaoJogador(j) {
   const ini = j.nome.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+  const meta = [j.idade ? `<span>${esc(j.idade)} anos</span>` : '', j.altura_cm ? `<span>${fmtAltura(j.altura_cm)}</span>` : '',
+    j.pe_dominante ? `<span>Pé ${esc(j.pe_dominante.toLowerCase())}</span>` : ''].join('');
   return `<article class="card"><span class="num">${esc(j.numero ?? '–')}</span>
     ${j.foto_url ? `<img src="${esc(j.foto_url)}" alt="${esc(j.nome)}" loading="lazy">` : `<div class="ini">${esc(ini)}</div>`}
-    <h3>${esc(j.nome)}</h3><p>${esc(j.posicao)}</p></article>`;
+    <h3>${esc(j.nome)}</h3><p>${esc(j.posicao)}</p>${meta ? `<div class="meta">${meta}</div>` : ''}</article>`;
 }
+
+// Reduz a foto (máx. 900px, JPEG) antes de enviar: fotos de celular são pesadas
+function comprimir(file, max = 900) {
+  return new Promise((ok, err) => {
+    const img = new Image(), u = URL.createObjectURL(file);
+    img.onload = () => {
+      const r = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u);
+      c.toBlob(b => b ? ok(b) : err(new Error('Não foi possível processar a imagem.')), 'image/jpeg', .85);
+    };
+    img.onerror = () => err(new Error('Arquivo de imagem inválido.'));
+    img.src = u;
+  });
+}
+const caminhoFoto = url => (url || '').split('/object/public/fotos/')[1] || null;
 
 function linksContato(c) {
   const dig = v => String(v || '').replace(/\D/g, '');
