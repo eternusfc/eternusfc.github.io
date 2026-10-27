@@ -8,10 +8,10 @@ const caminhoFoto = url => (url || '').split('/object/public/fotos/')[1] || null
 /* ---------- menu e logo ---------- */
 function nav(admin, ativo) {
   const links = admin
-    ? [['elenco', 'Elenco', 'elenco.html'], ['contato', 'Contato', 'contato.html'], ['financeiro', 'Financeiro', 'financeiro.html'], ['config', 'Configurações', 'configuracoes.html']]
+    ? [['elenco', 'Elenco', 'elenco.html'], ['mensalidades', 'Mensalidades', 'mensalidades.html'], ['financeiro', 'Financeiro', 'financeiro.html'], ['contato', 'Contato', 'contato.html'], ['config', 'Configurações', 'configuracoes.html']]
     : [['home', 'Início', 'index.html'], ['elenco', 'Elenco', 'elenco.html'], ['contato', 'Contato', 'contato.html']];
   document.getElementById('nav').innerHTML =
-    `<a class="logo" href="${admin ? '../index.html' : 'index.html'}"><span class="marca"></span>ETERNUS<b>FC</b>${admin ? '<small>admin</small>' : ''}</a>
+    `<a class="logo" href="${admin ? '../index.html' : 'index.html'}"><span class="marca"></span>ETERNUS<b>FC</b>${admin ? '<small>admin · v9</small>' : ''}</a>
     <button class="burger" aria-label="Menu" aria-expanded="false" aria-controls="menu"><i></i><i></i><i></i></button><nav id="menu">` +
     links.map(([k, t, h]) => `<a href="${h}" ${k === ativo ? 'aria-current="page"' : ''}>${t}</a>`).join('') +
     (admin ? '<button id="sair" class="link">Sair</button>' : '') + '</nav>';

@@ -1,0 +1,120 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Mensalidades – Admin Eternus FC</title><link rel="stylesheet" href="../assets/style.css?v=1793123906"></head><body>
+<header id="nav"></header>
+<main><div class="topo"><h2>Mensalidades</h2><button class="btn sec" id="ajustes">Ajustes</button></div>
+<div class="mes"><button class="x" id="ant" aria-label="Mês anterior">‹</button><strong id="tit"></strong><button class="x" id="prox" aria-label="Próximo mês">›</button></div>
+<div class="resumo"><div><small>Recebido</small><strong id="rec">–</strong></div><div><small>Pendente</small><span id="pen">–</span></div><div><small>Atrasado</small><span id="atr">–</span></div></div>
+<p id="msg" class="vazio" hidden></p>
+<ul class="lista" id="lista"></ul></main>
+
+<div class="modal" id="mj" hidden><form class="painel" id="fj">
+  <div class="painel-topo"><div><h3 id="jnome"></h3><small class="dica" id="jmes"></small></div><button type="button" class="x" data-fechar aria-label="Fechar">×</button></div>
+  <div class="painel-corpo">
+    <p id="jinfo"></p>
+    <div class="par dois" id="campos"><label>Valor (R&#36;)<input id="valor" type="number" min="0.01" step="0.01" inputmode="decimal"></label>
+    <label>Data do pagamento<input id="dataPg" type="date"></label></div>
+    <hr>
+    <label class="chk"><input id="isento" type="checkbox"> Isento de mensalidade</label>
+  </div>
+  <div class="painel-rodape"><button type="button" class="btn perigo esq" id="desfazer" hidden>Desfazer pagamento</button><button type="button" class="btn sec" data-fechar>Fechar</button><button class="btn" id="pagar">Marcar como pago</button></div>
+</form></div>
+
+<div class="modal" id="ma" hidden><form class="painel" id="fa">
+  <div class="painel-topo"><h3>Ajustes</h3><button type="button" class="x" data-fechar aria-label="Fechar">×</button></div>
+  <div class="painel-corpo">
+    <div class="par dois"><label>Valor da mensalidade (R&#36;)<input id="cfgValor" type="number" min="0" step="0.01" inputmode="decimal" required></label>
+    <label>Dia do vencimento<input id="cfgDia" type="number" min="1" max="28" inputmode="numeric" required></label></div>
+    <small class="dica">Vale para todos os meses. Pagamentos já registrados mantêm o valor em que foram pagos.</small>
+    <hr>
+    <strong id="mesLbl"></strong>
+    <label class="chk"><input id="mesSem" type="checkbox"> Sem mensalidade neste mês</label>
+    <label>Valor só deste mês (opcional)<input id="mesValor" type="number" min="0" step="0.01" inputmode="decimal"></label>
+  </div>
+  <div class="painel-rodape"><button type="button" class="btn sec" data-fechar>Cancelar</button><button class="btn" id="salvarA">Salvar</button></div>
+</form></div>
+<div id="aviso" class="aviso" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="../assets/config.js?v=1793123906"></script><script src="../assets/app.js?v=1793123906"></script><script>
+nav(true,'mensalidades');
+const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const ROT={pago:'Pago',pendente:'Pendente',atrasado:'Atrasado',isento:'Isento'},ORD={atrasado:0,pendente:1,pago:2,isento:3};
+let ano=new Date().getFullYear(),mes=new Date().getMonth(),cfg={mensalidade_valor:0,mensalidade_dia:10},mesCfg=null,linhas=[],atual=null,venc='';
+const p2=n=>String(n).padStart(2,'0');
+const chave=()=>ano+'-'+p2(mes+1)+'-01';
+const hoje=()=>{const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
+
+async function carregar(){
+  tit.textContent=MESES[mes]+' '+ano;
+  const k=chave();
+  const r=await Promise.all([
+    sb.from('configuracoes').select('mensalidade_valor,mensalidade_dia').eq('id',1).maybeSingle(),
+    sb.from('jogadores').select('id,nome,foto_url,isento').order('nome'),
+    sb.from('mensalidades').select('*').eq('mes',k),
+    sb.from('mensalidade_meses').select('*').eq('mes',k).maybeSingle()]);
+  const err=r.map(x=>x.error).find(Boolean);
+  if(err) return aviso('Erro ao carregar: '+err.message,true);
+  cfg=r[0].data||cfg;mesCfg=r[3].data;
+  const sem=!!(mesCfg&&mesCfg.sem_mensalidade);
+  const valorMes=(mesCfg&&mesCfg.valor!=null)?+mesCfg.valor:+cfg.mensalidade_valor;
+  venc=ano+'-'+p2(mes+1)+'-'+p2(cfg.mensalidade_dia);
+  const pagos=new Map(r[2].data.map(x=>[x.jogador_id,x]));
+  linhas=[];
+  r[1].data.forEach(p=>{
+    const pg=pagos.get(p.id);
+    if(pg) linhas.push({p:p,st:'pago',valor:+pg.valor,pg:pg});
+    else if(sem) return;
+    else if(p.isento) linhas.push({p:p,st:'isento',valor:0});
+    else linhas.push({p:p,st:hoje()>venc?'atrasado':'pendente',valor:valorMes});
+  });
+  linhas.sort((a,b)=>ORD[a.st]-ORD[b.st]||a.p.nome.localeCompare(b.p.nome));
+  const soma=s=>linhas.filter(l=>l.st===s).reduce((a,l)=>a+l.valor,0);
+  rec.textContent=brl(soma('pago'));pen.textContent=brl(soma('pendente'));atr.textContent=brl(soma('atrasado'));
+  msg.hidden=!(sem||!linhas.length);
+  msg.textContent=sem?'Sem mensalidade neste mês.':'Nenhum jogador cadastrado.';
+  lista.innerHTML=linhas.map(l=>{
+    const sub=l.st==='pago'?'Pago em '+dataBR(l.pg.pago_em):l.st==='isento'?'Isento':(l.st==='atrasado'?'Venceu ':'Vence ')+dataBR(venc);
+    return '<li class="clic" data-id="'+l.p.id+'">'+(l.p.foto_url?'<img src="'+esc(l.p.foto_url)+'" alt="">':'<div class="ini">'+esc(iniciais(l.p.nome))+'</div>')+
+      '<div class="nome">'+esc(l.p.nome)+'<small>'+sub+'</small></div><div class="dir">'+(l.st==='isento'?'':'<span class="val">'+brl(l.valor)+'</span>')+'<small class="st '+l.st+'">'+ROT[l.st]+'</small></div></li>'}).join('');
+}
+ant.onclick=()=>{mes--;if(mes<0){mes=11;ano--}carregar()};
+prox.onclick=()=>{mes++;if(mes>11){mes=0;ano++}carregar()};
+
+/* ---- jogador ---- */
+lista.onclick=e=>{
+  const li=e.target.closest('li[data-id]');if(!li)return;
+  const l=linhas.find(x=>x.p.id==li.dataset.id);atual=l;
+  jnome.textContent=l.p.nome;jmes.textContent=MESES[mes]+' '+ano;isento.checked=!!l.p.isento;
+  const pago=l.st==='pago',liv=l.st==='pendente'||l.st==='atrasado';
+  jinfo.textContent=pago?'Pago em '+dataBR(l.pg.pago_em)+' · '+brl(l.valor)+'. A entrada já está no financeiro.':l.st==='isento'?'Este jogador é isento de mensalidade.':ROT[l.st]+' · vencimento em '+dataBR(venc)+'.';
+  campos.hidden=!liv;pagar.hidden=!liv;desfazer.hidden=!pago;
+  valor.required=liv;valor.value=liv?l.valor:'';dataPg.value=hoje();
+  abrirModal('mj')};
+fj.onsubmit=async e=>{e.preventDefault();
+  pagar.disabled=true;
+  const {error}=await sb.rpc('pagar_mensalidade',{p_jogador:atual.p.id,p_mes:chave(),p_valor:+valor.value,p_data:dataPg.value});
+  pagar.disabled=false;
+  if(error) return aviso('Erro: '+error.message,true);
+  aviso('Pagamento registrado no financeiro.');fecharModal('mj');carregar()};
+desfazer.onclick=async()=>{
+  if(!confirm('Desfazer o pagamento? A entrada no financeiro também será removida.'))return;
+  const {error}=await sb.rpc('desfazer_mensalidade',{p_jogador:atual.p.id,p_mes:chave()});
+  if(error) return aviso('Erro: '+error.message,true);
+  aviso('Pagamento desfeito.');fecharModal('mj');carregar()};
+isento.onchange=async()=>{
+  const {error}=await sb.from('jogadores').update({isento:isento.checked}).eq('id',atual.p.id);
+  if(error){isento.checked=!isento.checked;return aviso('Erro: '+error.message,true)}
+  aviso(isento.checked?'Jogador isento.':'Jogador voltou a pagar.');fecharModal('mj');carregar()};
+
+/* ---- ajustes ---- */
+ajustes.onclick=()=>{
+  cfgValor.value=cfg.mensalidade_valor;cfgDia.value=cfg.mensalidade_dia;
+  mesLbl.textContent='Neste mês · '+MESES[mes]+' '+ano;
+  mesSem.checked=!!(mesCfg&&mesCfg.sem_mensalidade);mesValor.value=(mesCfg&&mesCfg.valor!=null)?mesCfg.valor:'';
+  mesValor.placeholder=brl(cfg.mensalidade_valor);abrirModal('ma')};
+fa.onsubmit=async e=>{e.preventDefault();
+  salvarA.disabled=true;
+  const a=await sb.from('configuracoes').update({mensalidade_valor:+cfgValor.value,mensalidade_dia:+cfgDia.value}).eq('id',1);
+  const b=await sb.from('mensalidade_meses').upsert({mes:chave(),sem_mensalidade:mesSem.checked,valor:mesValor.value===''?null:+mesValor.value});
+  salvarA.disabled=false;
+  const err=a.error||b.error;if(err) return aviso('Erro ao salvar: '+err.message,true);
+  aviso('Ajustes salvos.');fecharModal('ma');carregar()};
+exigeLogin().then(carregar);
+</script></body></html>

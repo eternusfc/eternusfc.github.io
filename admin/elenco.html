@@ -1,4 +1,4 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Elenco – Admin Eternus FC</title><link rel="stylesheet" href="../assets/style.css"></head><body>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Elenco – Admin Eternus FC</title><link rel="stylesheet" href="../assets/style.css?v=1793123906"></head><body>
 <header id="nav"></header>
 <main><div class="topo"><h2>Elenco</h2><button class="btn" id="novo">Adicionar jogador</button></div>
 <ul class="lista" id="lista"></ul></main>
@@ -14,11 +14,12 @@
     <div class="par dois"><label>Posição<select id="posicao"></select></label>
     <label>Pé dominante<select id="pe"><option value="">—</option></select></label></div>
     <label class="chk"><input id="ativo" type="checkbox" checked> Aparece no site</label>
+    <label class="chk"><input id="isento" type="checkbox"> Isento de mensalidade</label>
   </div>
   <div class="painel-rodape"><button type="button" class="btn sec" data-fechar>Cancelar</button><button class="btn" id="salvar">Salvar</button></div>
 </form></div>
 <div id="aviso" class="aviso" hidden></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="../assets/config.js"></script><script src="../assets/app.js"></script><script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="../assets/config.js?v=1793123906"></script><script src="../assets/app.js?v=1793123906"></script><script>
 nav(true,'elenco');
 let lista_=[],atual=null;
 posicao.innerHTML=POSICOES.map(p=>'<option>'+p+'</option>').join('');
@@ -31,19 +32,19 @@ async function carregar(){
   const {data,error}=await sb.from('jogadores').select('*').order('numero',{nullsFirst:false});
   if(error) return aviso('Erro ao carregar: '+error.message,true);
   lista_=data;
-  lista.innerHTML=data.length?data.map(j=>'<li class="'+(j.ativo?'':'oculto')+'">'+(j.foto_url?'<img src="'+esc(j.foto_url)+'" alt="">':'<div class="ini">'+esc(iniciais(j.nome))+'</div>')+'<div class="nome">'+esc(j.nome)+'<small>'+(j.numero!=null?'#'+j.numero+' · ':'')+esc(j.posicao)+(j.ativo?'':' · oculto')+'</small></div><button class="btn mini sec" data-e="'+j.id+'">Editar</button><button class="btn mini perigo" data-d="'+j.id+'">Excluir</button></li>').join(''):'<p class="vazio">Nenhum jogador ainda. Toque em “Adicionar jogador”.</p>';
+  lista.innerHTML=data.length?data.map(j=>'<li class="'+(j.ativo?'':'oculto')+'">'+(j.foto_url?'<img src="'+esc(j.foto_url)+'" alt="">':'<div class="ini">'+esc(iniciais(j.nome))+'</div>')+'<div class="nome">'+esc(j.nome)+'<small>'+(j.numero!=null?'#'+j.numero+' · ':'')+esc(j.posicao)+(j.ativo?'':' · oculto')+(j.isento?' · isento':'')+'</small></div><button class="btn mini sec" data-e="'+j.id+'">Editar</button><button class="btn mini perigo" data-d="'+j.id+'">Excluir</button></li>').join(''):'<p class="vazio">Nenhum jogador ainda. Toque em “Adicionar jogador”.</p>';
 }
 function abrir(j){
   atual=j||null;f.reset();foto.value='';titulo.textContent=j?'Editar jogador':'Novo jogador';
   nome.value=j?.nome??'';numero.value=j?.numero??'';idade.value=j?.idade??'';altura.value=j?.altura_cm??'';
-  pe.value=j?.pe_dominante??'';posicao.value=j?.posicao??'Ala';ativo.checked=j?j.ativo:true;previa(j?.foto_url);abrirModal('m');
+  pe.value=j?.pe_dominante??'';posicao.value=j?.posicao??'Ala';ativo.checked=j?j.ativo:true;isento.checked=!!j?.isento;previa(j?.foto_url);abrirModal('m');
 }
 novo.onclick=()=>abrir(null);
 
 f.onsubmit=async e=>{e.preventDefault();
   salvar.disabled=true;
   try{
-    const d={nome:nome.value.trim(),numero:num(numero),idade:num(idade),altura_cm:num(altura),pe_dominante:pe.value||null,posicao:posicao.value,ativo:ativo.checked,foto_url:atual?.foto_url??null};
+    const d={nome:nome.value.trim(),numero:num(numero),idade:num(idade),altura_cm:num(altura),pe_dominante:pe.value||null,posicao:posicao.value,ativo:ativo.checked,isento:isento.checked,foto_url:atual?.foto_url??null};
     let novoCaminho=null;
     if(foto.files[0]){
       const blob=await comprimir(foto.files[0]);

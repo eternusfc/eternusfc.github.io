@@ -78,3 +78,61 @@ drop policy if exists "admin movimentacoes" on public.movimentacoes;
 drop policy if exists "admin desejos" on public.desejos;
 create policy "admin movimentacoes" on public.movimentacoes for all to authenticated using (true) with check (true);
 create policy "admin desejos" on public.desejos for all to authenticated using (true) with check (true);
+
+-- Mensalidades
+alter table public.jogadores add column if not exists isento boolean not null default false;
+alter table public.configuracoes add column if not exists mensalidade_valor numeric(12,2) not null default 0;
+alter table public.configuracoes add column if not exists mensalidade_dia int not null default 10;
+
+-- Uma linha aqui = mensalidade paga (jogador + mês). Pendente/atrasado é calculado pelo site.
+create table if not exists public.mensalidades (
+  id bigint generated always as identity primary key,
+  jogador_id bigint not null references public.jogadores(id) on delete cascade,
+  mes date not null,
+  valor numeric(12,2) not null,
+  pago_em date not null default current_date,
+  movimentacao_id bigint references public.movimentacoes(id) on delete cascade,
+  unique (jogador_id, mes)
+);
+-- Ajustes de um mês específico: sem mensalidade e/ou valor diferente do padrão
+create table if not exists public.mensalidade_meses (
+  mes date primary key,
+  sem_mensalidade boolean not null default false,
+  valor numeric(12,2)
+);
+alter table public.mensalidades enable row level security;
+alter table public.mensalidade_meses enable row level security;
+drop policy if exists "admin mensalidades" on public.mensalidades;
+drop policy if exists "admin mensalidade_meses" on public.mensalidade_meses;
+create policy "admin mensalidades" on public.mensalidades for all to authenticated using (true) with check (true);
+create policy "admin mensalidade_meses" on public.mensalidade_meses for all to authenticated using (true) with check (true);
+
+-- Pagar: registra a mensalidade e a entrada no financeiro de uma vez só
+create or replace function public.pagar_mensalidade(p_jogador bigint, p_mes date, p_valor numeric, p_data date)
+returns void language plpgsql as $$
+declare v_nome text; v_mov bigint;
+begin
+  select nome into v_nome from public.jogadores where id = p_jogador;
+  if v_nome is null then raise exception 'Jogador não encontrado'; end if;
+  if exists (select 1 from public.mensalidades where jogador_id = p_jogador and mes = p_mes) then
+    raise exception 'Esta mensalidade já está paga';
+  end if;
+  insert into public.movimentacoes (tipo, valor, descricao, data, quem_tipo, quem_nome)
+    values ('entrada', p_valor, 'Mensalidade ' || to_char(p_mes, 'MM/YYYY'), p_data, 'jogador', v_nome)
+    returning id into v_mov;
+  insert into public.mensalidades (jogador_id, mes, valor, pago_em, movimentacao_id)
+    values (p_jogador, p_mes, p_valor, p_data, v_mov);
+end $$;
+
+-- Desfazer: remove a mensalidade e a entrada correspondente no financeiro
+create or replace function public.desfazer_mensalidade(p_jogador bigint, p_mes date)
+returns void language plpgsql as $$
+begin
+  delete from public.movimentacoes where id = (select movimentacao_id from public.mensalidades where jogador_id = p_jogador and mes = p_mes);
+  delete from public.mensalidades where jogador_id = p_jogador and mes = p_mes;
+end $$;
+
+revoke all on function public.pagar_mensalidade(bigint, date, numeric, date) from public, anon;
+revoke all on function public.desfazer_mensalidade(bigint, date) from public, anon;
+grant execute on function public.pagar_mensalidade(bigint, date, numeric, date) to authenticated;
+grant execute on function public.desfazer_mensalidade(bigint, date) to authenticated;
