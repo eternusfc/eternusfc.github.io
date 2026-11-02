@@ -1,0 +1,82 @@
+/* Tema Eternus FC – mesmo estilo da página de contato. Carrega depois do style.css */
+
+/* brilho de fundo e títulos */
+body{position:relative;overflow-x:clip}
+body::before{content:"";position:absolute;top:0;left:0;right:0;height:380px;background:radial-gradient(ellipse 60% 70% at 30% 0%,rgba(143,23,48,.32),transparent 70%);pointer-events:none;z-index:-1}
+h2{font-size:clamp(28px,6vw,40px);font-weight:800;letter-spacing:-.04em;margin-bottom:12px}
+.topo h2{font-size:clamp(26px,5vw,34px)}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--claro);margin-bottom:12px}
+.eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--claro);animation:pulso 2s infinite}
+.sub{color:var(--cinza);font-size:16px;max-width:440px;margin:0 0 28px}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(224,80,107,.6)}70%,100%{box-shadow:0 0 0 8px rgba(224,80,107,0)}}
+
+/* botões */
+.btn{border-radius:12px;font-weight:600;transition:transform .15s,box-shadow .15s,background .15s}
+.btn:not(.sec):not(.perigo):not(.mini):hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(143,23,48,.4)}
+.btn.mini{border-radius:10px}
+
+/* campos */
+input,select,textarea{border-radius:10px;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(224,80,107,.16)}
+form.box{background:var(--suave);border:1px solid var(--linha);border-radius:16px;padding:22px;max-width:480px}
+
+/* janelas */
+.painel{border-radius:20px}
+.aviso{border-radius:12px}
+@media(max-width:560px){.painel{border-radius:20px 20px 0 0}}
+
+/* início */
+.hero{position:relative;overflow:hidden;min-height:calc(100svh - 56px - 70px)}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 55% 45% at 50% 35%,rgba(143,23,48,.35),transparent 70%);pointer-events:none;z-index:-1}
+.hero .sub{margin:-8px auto 4px;text-align:center}
+.hero div .btn{padding:14px 26px;font-size:16px}
+@media(max-width:560px){.hero div{flex-direction:column;width:100%;max-width:320px}.hero div .btn{text-align:center}}
+
+/* elenco público: cartões */
+.grid{gap:14px}
+.card{background:var(--suave);border:1px solid var(--linha);border-radius:14px;overflow:hidden;transition:transform .15s,border-color .15s}
+.card:hover{transform:translateY(-3px);border-color:var(--bordo)}
+.card img,.card .ini{border-radius:0}
+.card:hover img,.card:hover .ini{opacity:1}
+.card h3{margin:10px 12px 0}
+.card p{margin:0 12px 12px}
+
+/* listas do admin viram cartões */
+.lista li{border:1px solid var(--linha);border-radius:14px;background:var(--suave);padding:12px 14px;margin-bottom:10px;transition:transform .15s,border-color .15s}
+.lista li.clic:hover{transform:translateY(-1px);border-color:var(--bordo)}
+.lista li.clic:hover .nome{color:inherit}
+.resumo div{border:1px solid var(--linha);border-radius:14px;padding:14px 16px}
+.mes{background:var(--suave);border:1px solid var(--linha);border-radius:14px;padding:4px}
+
+/* abas do financeiro como seletor */
+.abas{display:inline-flex;gap:4px;padding:4px;background:var(--suave);border:1px solid var(--linha);border-radius:12px}
+.abas a{padding:8px 16px;border:0;border-radius:9px;margin:0}
+.abas a[aria-current]{background:var(--bordo);color:#fff}
+
+/* login */
+.login{position:relative;overflow:hidden;min-height:100dvh}
+.login::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 50% 40% at 50% 30%,rgba(143,23,48,.35),transparent 70%);pointer-events:none}
+.login form{position:relative;background:var(--suave);border:1px solid var(--linha);border-radius:20px;padding:28px;width:min(360px,100%)}
+.login h1{font-size:24px;font-weight:800;letter-spacing:-.03em}
+
+@media(prefers-reduced-motion:reduce){.eyebrow i{animation:none}}
+
+/* ---------- ajustes de responsividade ---------- */
+img,svg,video{max-width:100%}
+@media(max-width:560px){
+  h2{margin-bottom:10px}
+  .sub{font-size:15px;margin-bottom:22px}
+  form.box{padding:16px}
+  .grid{gap:12px}
+  .lista li{flex-wrap:wrap;padding:12px}
+  .lista .nome{flex:1 1 140px}
+  .lista li>.btn{flex:1 1 auto;text-align:center}
+  .painel-rodape{flex-wrap:wrap}
+  .painel-rodape .esq{margin-right:0;flex-basis:100%;order:3}
+  .painel-corpo{padding:16px}
+  .abas{display:flex}.abas a{flex:1;text-align:center;padding:9px 8px}
+}
+@media(max-width:400px){
+  .par{grid-template-columns:1fr 1fr}
+  .resumo strong,.resumo span{font-size:15px}
+}
