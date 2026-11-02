@@ -1,0 +1,66 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Camisa – Eternus FC</title><link rel="stylesheet" href="assets/style.css?v=1793123906"><link id="tema" rel="stylesheet" href="assets/tema.css?v=1">
+<style>
+.cm{display:grid;gap:24px;margin-top:8px}
+.cm-fotos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cm-fotos figure{margin:0}
+.cm-fotos figcaption{font-size:12px;color:var(--cinza);margin-top:6px}
+.cm-info{max-width:560px}
+.cm-foto{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:16px;background:var(--suave);border:1px solid var(--linha);display:block}
+.cm-nota{margin:10px 2px 0;font-size:13px;color:var(--cinza)}
+.cm-info{display:grid;gap:16px}
+.cm-info h2{margin:0}
+.cm-preco{font-size:32px;font-weight:800;letter-spacing:-.03em}
+.cm-desc{color:var(--cinza);margin:0;white-space:pre-line}
+.cm-tam{display:flex;flex-wrap:wrap;gap:8px}
+.cm-tam label{position:relative;display:block}
+.cm-tam input{position:absolute;opacity:0;pointer-events:none}
+.cm-tam span{display:block;min-width:48px;text-align:center;padding:10px 14px;border:1px solid var(--linha);border-radius:10px;background:var(--suave);color:var(--texto);font-weight:600;cursor:pointer;transition:border-color .15s,background .15s}
+.cm-tam input:checked+span{background:var(--bordo);border-color:var(--bordo);color:#fff}
+.cm-tam input:focus-visible+span{outline:2px solid var(--claro);outline-offset:2px}
+.cm-cta{display:flex;justify-content:center;align-items:center;gap:10px;padding:15px 24px;font-size:16px;border-radius:12px}
+.cm-cta svg{width:20px;height:20px}
+@media(max-width:700px){.cm{grid-template-columns:1fr;gap:20px}}
+</style></head><body>
+<header id="nav"></header>
+<main>
+  <span class="eyebrow"><i></i>Loja do time</span>
+  <div id="conteudo"><p class="vazio">Carregando…</p></div>
+</main>
+<footer><a href="admin/index.html">Admin</a></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="assets/config.js?v=1793123906"></script><script src="assets/app.js?v=1793123906"></script><script>
+nav(false,'camisa');
+const ZAP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.7-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>';
+const fig=(u,alt,leg)=>'<figure>'+(u?'<img class="cm-foto" src="'+esc(u)+'" alt="'+esc(alt)+'">':'<div class="cm-foto"></div>')+'<figcaption>'+leg+'</figcaption></figure>';
+(async()=>{
+  const [c,t]=await Promise.all([
+    sb.from('camisa').select('*').eq('id',1).maybeSingle(),
+    sb.from('contato').select('whatsapp').eq('id',1).maybeSingle()]);
+  if(c.error) return conteudo.innerHTML='<p class="vazio">Não foi possível carregar a camisa.</p>';
+  const d=c.data;
+  if(!d||!d.ativo) return conteudo.innerHTML='<h2>Camisa</h2><p class="vazio">Camisa em breve.</p>';
+  let num=String((d.whatsapp||(t.data&&t.data.whatsapp)||'')).replace(/\D/g,'');
+  if(num&&num.length<=11) num='55'+num;
+  const tams=String(d.tamanhos||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const preco=d.valor!=null?brl(d.valor):'';
+  conteudo.innerHTML='<div class="cm">'+
+    '<div><div class="cm-fotos">'+
+      fig(d.foto_url,d.titulo,'Frente')+(d.foto_costas_url?fig(d.foto_costas_url,d.titulo+' (costas)','Costas'):'')+
+    '</div><p class="cm-nota">Imagem ilustrativa. A camisa real pode não ser idêntica ao modelo mostrado.</p></div>'+
+    '<div class="cm-info"><h2>'+esc(d.titulo||'Camisa do Eternus FC')+'</h2>'+
+    (preco?'<div class="cm-preco">'+preco+'</div>':'')+
+    (d.descricao?'<p class="cm-desc">'+esc(d.descricao)+'</p>':'')+
+    (tams.length?'<div><small class="dica">Tamanho</small><div class="cm-tam" id="tam" role="radiogroup">'+tams.map((x,i)=>'<label><input type="radio" name="tam" value="'+esc(x)+'"'+(i===0?' checked':'')+'><span>'+esc(x)+'</span></label>').join('')+'</div></div>':'')+
+    (num?'<a class="btn cm-cta" id="comprar" target="_blank" rel="noopener" href="#">'+ZAP+'Comprar pelo WhatsApp</a>':'<p class="vazio">Contato para compra em breve.</p>')+
+    '</div></div>';
+  const btn=document.getElementById('comprar');
+  if(btn){
+    const atualizar=()=>{
+      const s=document.querySelector('input[name=tam]:checked');
+      const msg='Olá! Quero comprar a camisa do Eternus FC'+(s?' (tamanho '+s.value+')':'')+(preco?' - '+preco:'')+'.';
+      btn.href='https://wa.me/'+num+'?text='+encodeURIComponent(msg);
+    };
+    atualizar();
+    const g=document.getElementById('tam');if(g) g.onchange=atualizar;
+  }
+})();
+</script></body></html>

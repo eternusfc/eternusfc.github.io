@@ -8,8 +8,8 @@ const caminhoFoto = url => (url || '').split('/object/public/fotos/')[1] || null
 /* ---------- menu e logo ---------- */
 function nav(admin, ativo) {
   const links = admin
-    ? [['elenco', 'Elenco', 'elenco.html'], ['mensalidades', 'Mensalidades', 'mensalidades.html'], ['financeiro', 'Financeiro', 'financeiro.html'], ['contato', 'Contato', 'contato.html'], ['config', 'Configurações', 'configuracoes.html']]
-    : [['home', 'Início', 'index.html'], ['elenco', 'Elenco', 'elenco.html'], ['contato', 'Contato', 'contato.html']];
+    ? [['elenco', 'Elenco', 'elenco.html'], ['mensalidades', 'Mensalidades', 'mensalidades.html'], ['financeiro', 'Financeiro', 'financeiro.html'], ['camisa', 'Camisa', 'camisa.html'], ['contato', 'Contato', 'contato.html'], ['config', 'Configurações', 'configuracoes.html']]
+    : [['home', 'Início', 'index.html'], ['elenco', 'Elenco', 'elenco.html'], ['camisa', 'Camisa', 'camisa.html'], ['contato', 'Contato', 'contato.html']];
   document.getElementById('nav').innerHTML =
     `<a class="logo" href="${admin ? '../index.html' : 'index.html'}"><span class="marca"></span>ETERNUS<b>FC</b>${admin ? '<small>admin · v9</small>' : ''}</a>
     <button class="burger" aria-label="Menu" aria-expanded="false" aria-controls="menu"><i></i><i></i><i></i></button><nav id="menu">` +
