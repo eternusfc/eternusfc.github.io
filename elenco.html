@@ -10,6 +10,7 @@ let J=[];
   const {data,error}=await sb.from('jogadores').select('*').eq('ativo',true).order('numero',{nullsFirst:false});
   if(error) return lista.innerHTML='<p class="vazio">Não foi possível carregar o elenco.</p>';
   J=data;
+       const s=await sb.from('jogador_stats').select('*');(s.data||[]).forEach(x=>{const p=J.find(j=>j.id===x.jogador_id);if(p)p.st=x});
   lista.innerHTML=J.length?J.map(cartaoJogador).join(''):'<p class="vazio">Elenco em breve.</p>';
 })();
 lista.onclick=e=>{const c=e.target.closest('.card');if(!c)return;pdet.innerHTML=detalhesJogador(J.find(x=>x.id==c.dataset.id));abrirModal('mdet')};

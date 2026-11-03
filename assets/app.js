@@ -8,8 +8,8 @@ const caminhoFoto = url => (url || '').split('/object/public/fotos/')[1] || null
 /* ---------- menu e logo ---------- */
 function nav(admin, ativo) {
   const links = admin
-    ? [['elenco', 'Elenco', 'elenco.html'], ['mensalidades', 'Mensalidades', 'mensalidades.html'], ['financeiro', 'Financeiro', 'financeiro.html'], ['camisa', 'Camisa', 'camisa.html'], ['contato', 'Contato', 'contato.html'], ['config', 'Configurações', 'configuracoes.html']]
-    : [['home', 'Início', 'index.html'], ['elenco', 'Elenco', 'elenco.html'], ['camisa', 'Camisa', 'camisa.html'], ['contato', 'Contato', 'contato.html']];
+  ? [['elenco', 'Elenco', 'elenco.html'], ['jogos', 'Jogos', 'jogos.html'], ['mensalidades', 'Mensalidades', 'mensalidades.html'], ['financeiro', 'Financeiro', 'financeiro.html'], ['camisa', 'Camisa', 'camisa.html'], ['contato', 'Contato', 'contato.html'], ['config', 'Configurações', 'configuracoes.html']]
+  : [['home', 'Início', 'index.html'], ['elenco', 'Elenco', 'elenco.html'], ['jogos', 'Jogos', 'jogos.html'], ['camisa', 'Camisa', 'camisa.html'], ['contato', 'Contato', 'contato.html']];
   document.getElementById('nav').innerHTML =
     `<a class="logo" href="${admin ? '../index.html' : 'index.html'}"><span class="marca"></span>ETERNUS<b>FC</b>${admin ? '<small>admin · v9</small>' : ''}</a>
     <button class="burger" aria-label="Menu" aria-expanded="false" aria-controls="menu"><i></i><i></i><i></i></button><nav id="menu">` +
@@ -70,7 +70,7 @@ function cartaoJogador(j) {
 }
 
 function detalhesJogador(j) {
-  const l = [['Posição', j.posicao], ['Número', j.numero], ['Idade', j.idade && j.idade + ' anos'], ['Altura', j.altura_cm && fmtAltura(j.altura_cm)], ['Pé dominante', j.pe_dominante]]
+  const l = [['Posição', j.posicao], ['Número', j.numero], ['Idade', j.idade && j.idade + ' anos'], ['Altura', j.altura_cm && fmtAltura(j.altura_cm)], ['Pé dominante', j.pe_dominante], (j.st&&j.st.jogos>0?[['Jogos',''+j.st.jogos],['Gols',''+j.st.gols],['Assistências',''+j.st.assistencias]]:[])]
     .filter(x => x[1]).map(([a, b]) => `<div class="det"><span>${a}</span><span>${esc(b)}</span></div>`).join('');
   return `<button class="fechar" aria-label="Fechar" data-fechar>×</button>
     ${j.foto_url ? `<img src="${esc(j.foto_url)}" alt="">` : `<div class="ini">${esc(iniciais(j.nome))}</div>`}

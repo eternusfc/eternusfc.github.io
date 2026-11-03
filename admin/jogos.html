@@ -1,0 +1,106 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Jogos – Admin Eternus FC</title><link rel="stylesheet" href="../assets/style.css?v=1793123906"><link id="tema" rel="stylesheet" href="../assets/tema.css?v=1">
+<style>
+.painel.larga{width:min(560px,100%)}
+.sec-t{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--claro);margin:4px 0 -4px}
+.lin{display:grid;grid-template-columns:1fr 130px;gap:10px;align-items:center;font-size:14px}
+.gol{display:grid;gap:8px;padding:12px;border:1px solid var(--linha);border-radius:12px;background:var(--fundo)}
+.gol .rm{justify-self:end}
+</style></head><body>
+<header id="nav"></header>
+<main><div class="topo"><h2>Jogos</h2><button class="btn" id="novo">Novo jogo</button></div>
+<ul class="lista" id="lista"></ul></main>
+
+<div class="modal" id="m" hidden><form class="painel larga" id="f">
+  <div class="painel-topo"><h3 id="titulo">Novo jogo</h3><button type="button" class="x" data-fechar aria-label="Fechar">×</button></div>
+  <div class="painel-corpo">
+    <label>Adversário<input id="jAdv" required autocomplete="off"></label>
+    <div class="par dois"><label>Data<input id="jData" type="date" required></label><label>Hora<input id="jHora" type="time"></label></div>
+    <label>Local<input id="jLocal" autocomplete="off" placeholder="Ex.: Arena Society, Rua X"></label>
+    <div class="par dois"><label>Competição<input id="jComp" autocomplete="off" placeholder="Amistoso, Copa..."></label>
+    <label>Situação<select id="jStatus"><option value="agendado">Agendado</option><option value="encerrado">Encerrado</option></select></label></div>
+    <small class="dica">As estatísticas dos jogadores só contam jogos “Encerrado”.</small>
+    <hr>
+    <div class="sec-t">Escalação</div>
+    <div id="escal" style="display:grid;gap:8px"></div>
+    <hr>
+    <div class="sec-t">Gols</div>
+    <div id="gl" style="display:grid;gap:10px"></div>
+    <div><button type="button" class="btn sec mini" id="addGol">+ Adicionar gol</button></div>
+    <hr>
+    <label>Observações<textarea id="jObs" rows="2"></textarea></label>
+  </div>
+  <div class="painel-rodape"><button type="button" class="btn perigo esq" id="excluir" hidden>Excluir</button><button type="button" class="btn sec" data-fechar>Cancelar</button><button class="btn" id="salvar">Salvar</button></div>
+</form></div>
+<div id="aviso" class="aviso" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="../assets/config.js?v=1793123906"></script><script src="../assets/app.js?v=1793123906"></script><script>
+nav(true,'jogos');
+let jogos=[],escal=[],gls=[],jog=[],atual=null;
+const hoje=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const optsJ=()=>jog.map(p=>'<option value="'+p.id+'">'+esc(p.nome)+'</option>').join('');
+const placar=g=>[gls.filter(x=>x.jogo_id===g.id&&x.tipo==='eternus').length,gls.filter(x=>x.jogo_id===g.id&&x.tipo==='adversario').length];
+
+async function carregar(){
+  const r=await Promise.all([
+    sb.from('jogos').select('*').order('data',{ascending:false}).order('hora',{ascending:false}),
+    sb.from('jogo_escalacao').select('*'),
+    sb.from('gols').select('*').order('minuto'),
+    sb.from('jogadores').select('id,nome').order('nome')]);
+  const err=r.map(x=>x.error).find(Boolean);
+  if(err) return aviso('Erro ao carregar: '+err.message,true);
+  jogos=r[0].data;escal=r[1].data;gls=r[2].data;jog=r[3].data;
+  lista.innerHTML=jogos.length?jogos.map(g=>{
+    const p=placar(g);
+    return '<li class="clic" data-id="'+g.id+'"><div class="nome">Eternus FC x '+esc(g.adversario)+'<small>'+dataBR(g.data)+(g.hora?' · '+g.hora.slice(0,5):'')+(g.competicao?' · '+esc(g.competicao):'')+'</small></div><div class="dir">'+(g.status==='encerrado'?'<span class="val">'+p[0]+' x '+p[1]+'</span>':'')+'<small class="st">'+(g.status==='encerrado'?'Encerrado':'Agendado')+'</small></div></li>'}).join('')
+    :'<p class="vazio">Nenhum jogo ainda. Toque em “Novo jogo”.</p>';
+}
+
+function linhaGol(g){
+  const d=document.createElement('div');d.className='gol';
+  d.innerHTML='<div class="par dois"><select class="t"><option value="eternus">Gol do Eternus</option><option value="adversario">Gol do adversário</option></select><input class="m" type="number" min="0" max="200" placeholder="Minuto" inputmode="numeric"></div>'+
+    '<div class="par dois ap"><select class="a"><option value="">Autor</option>'+optsJ()+'</select><select class="s"><option value="">Sem assistência</option>'+optsJ()+'</select></div>'+
+    '<button type="button" class="btn mini perigo rm">Remover gol</button>';
+  if(g){d.querySelector('.t').value=g.tipo;d.querySelector('.m').value=g.minuto??'';d.querySelector('.a').value=g.autor_id??'';d.querySelector('.s').value=g.assistencia_id??''}
+  d.querySelector('.ap').hidden=d.querySelector('.t').value==='adversario';
+  gl.append(d);
+}
+gl.onchange=e=>{if(e.target.classList.contains('t'))e.target.closest('.gol').querySelector('.ap').hidden=e.target.value==='adversario'};
+gl.onclick=e=>{if(e.target.classList.contains('rm'))e.target.closest('.gol').remove()};
+addGol.onclick=()=>linhaGol(null);
+
+function abrir(g){
+  atual=g||null;f.reset();titulo.textContent=g?'Editar jogo':'Novo jogo';excluir.hidden=!g;
+  jAdv.value=g?.adversario??'';jData.value=g?.data??hoje();jHora.value=g?.hora?g.hora.slice(0,5):'';
+  jLocal.value=g?.local??'';jComp.value=g?.competicao??'';jStatus.value=g?.status??'agendado';jObs.value=g?.observacoes??'';
+  const mine=new Map(escal.filter(x=>g&&x.jogo_id===g.id).map(x=>[x.jogador_id,x.titular?'t':'r']));
+  document.getElementById('escal').innerHTML=jog.length?jog.map(p=>'<div class="lin"><span>'+esc(p.nome)+'</span><select data-p="'+p.id+'"><option value="">—</option><option value="t">Titular</option><option value="r">Reserva</option></select></div>').join(''):'<p class="vazio">Cadastre jogadores no Elenco primeiro.</p>';
+  document.querySelectorAll('#escal select').forEach(s=>s.value=mine.get(+s.dataset.p)||'');
+  gl.innerHTML='';gls.filter(x=>g&&x.jogo_id===g.id).forEach(linhaGol);
+  abrirModal('m');
+}
+novo.onclick=()=>abrir(null);
+lista.onclick=e=>{const li=e.target.closest('li[data-id]');if(li)abrir(jogos.find(x=>x.id==li.dataset.id))};
+
+f.onsubmit=async e=>{e.preventDefault();
+  const gols=[];
+  for(const d of gl.querySelectorAll('.gol')){
+    const tipo=d.querySelector('.t').value,min=d.querySelector('.m').value,a=d.querySelector('.a').value,s=d.querySelector('.s').value;
+    if(min==='') return aviso('Informe o minuto de todos os gols.',true);
+    if(tipo==='eternus'&&!a) return aviso('Escolha o autor de cada gol do Eternus.',true);
+    if(tipo==='eternus'&&a&&a===s) return aviso('Autor e assistência não podem ser a mesma pessoa.',true);
+    gols.push({tipo,minuto:+min,autor_id:tipo==='eternus'?+a:null,assistencia_id:tipo==='eternus'&&s?+s:null});
+  }
+  const escalacao=[...document.querySelectorAll('#escal select')].filter(s=>s.value).map(s=>({jogador_id:+s.dataset.p,titular:s.value==='t'}));
+  salvar.disabled=true;
+  const {error}=await sb.rpc('salvar_jogo',{p_id:atual?atual.id:null,
+    p_jogo:{adversario:jAdv.value.trim(),data:jData.value,hora:jHora.value,local:jLocal.value.trim(),competicao:jComp.value.trim(),status:jStatus.value,observacoes:jObs.value.trim()},
+    p_escalacao:escalacao,p_gols:gols});
+  salvar.disabled=false;
+  if(error) return aviso('Erro ao salvar: '+error.message,true);
+  aviso('Jogo salvo.');fecharModal('m');carregar()};
+excluir.onclick=async()=>{
+  if(!confirm('Excluir este jogo? Escalação, gols e estatísticas dele também saem.'))return;
+  const {error}=await sb.from('jogos').delete().eq('id',atual.id);
+  if(error) return aviso('Erro ao excluir: '+error.message,true);
+  aviso('Jogo excluído.');fecharModal('m');carregar()};
+exigeLogin().then(carregar);
+</script></body></html>

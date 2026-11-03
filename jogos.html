@@ -1,0 +1,69 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Jogos – Eternus FC</title><link rel="stylesheet" href="assets/style.css?v=1793123906"><link id="tema" rel="stylesheet" href="assets/tema.css?v=1">
+<style>
+.jg-sec{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--cinza);margin:28px 0 12px}
+.jg{display:grid;gap:4px;width:100%;text-align:left;font:inherit;color:inherit;background:var(--suave);border:1px solid var(--linha);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:transform .15s,border-color .15s}
+.jg:hover{transform:translateY(-2px);border-color:var(--bordo)}
+.jg small{color:var(--cinza);font-size:12px}
+.jg-linha{display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:600;font-size:16px}
+.jg-pl{font-weight:800;font-size:20px;white-space:nowrap;letter-spacing:-.02em}
+.jg-pl.v{color:var(--claro)}
+.painel .corpo h4{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--claro);margin:18px 0 6px}
+.painel .corpo .big{font-size:30px;font-weight:800;letter-spacing:-.03em;margin:4px 0 2px}
+.painel .corpo .tit{padding-top:12px}
+.ev{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--linha);font-size:14px}
+.ev b{min-width:38px;color:var(--claro)}
+.ev small{color:var(--cinza)}
+.ev.adv b{color:var(--cinza)}
+.es{display:flex;flex-wrap:wrap;gap:6px}
+.es span{padding:5px 10px;border:1px solid var(--linha);border-radius:999px;font-size:13px;background:var(--fundo)}
+.es em{color:var(--cinza);font-style:normal;margin-right:4px}
+</style></head><body>
+<header id="nav"></header>
+<main><span class="eyebrow"><i></i>Calendário</span><h2>Jogos</h2><p class="sub">Toque em um jogo para ver escalação, gols e detalhes.</p><div id="lista"><p class="vazio">Carregando…</p></div></main>
+<div class="modal" id="mdet" hidden><div class="painel" id="pdet"></div></div>
+<footer><a href="admin/index.html">Admin</a></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="assets/config.js?v=1793123906"></script><script src="assets/app.js?v=1793123906"></script><script>
+nav(false,'jogos');
+let G=[],E=[],L=[],P=new Map();
+const placar=g=>[L.filter(x=>x.jogo_id===g.id&&x.tipo==='eternus').length,L.filter(x=>x.jogo_id===g.id&&x.tipo==='adversario').length];
+const nomeJ=id=>{const p=P.get(id);return p?esc(p.nome):'—'};
+const quando=g=>dataBR(g.data)+(g.hora?' · '+g.hora.slice(0,5):'');
+
+function cartao(g){
+  const p=placar(g),enc=g.status==='encerrado';
+  const res=enc?(p[0]>p[1]?'V':p[0]<p[1]?'D':'E'):'';
+  return '<button class="jg" data-id="'+g.id+'"><small>'+quando(g)+(g.competicao?' · '+esc(g.competicao):'')+'</small>'+
+    '<div class="jg-linha"><span>Eternus FC x '+esc(g.adversario)+'</span>'+(enc?'<span class="jg-pl '+(res==='V'?'v':'')+'">'+p[0]+' x '+p[1]+'</span>':'')+'</div>'+
+    (g.local?'<small>'+esc(g.local)+'</small>':'')+'</button>';
+}
+function detalhe(g){
+  const p=placar(g),enc=g.status==='encerrado';
+  const gs=L.filter(x=>x.jogo_id===g.id).sort((a,b)=>(a.minuto??999)-(b.minuto??999));
+  const es=E.filter(x=>x.jogo_id===g.id).map(x=>({...x,n:P.get(x.jogador_id)})).filter(x=>x.n).sort((a,b)=>(a.n.numero??999)-(b.n.numero??999));
+  const chip=x=>'<span>'+(x.n.numero!=null?'<em>'+x.n.numero+'</em>':'')+esc(x.n.nome)+'</span>';
+  const tit=es.filter(x=>x.titular),res=es.filter(x=>!x.titular);
+  const det=[['Data',dataBR(g.data)],['Hora',g.hora&&g.hora.slice(0,5)],['Competição',g.competicao]].filter(x=>x[1]).map(([a,b])=>'<div class="det"><span>'+a+'</span><span>'+esc(b)+'</span></div>').join('')+
+    (g.local?'<div class="det"><span>Local</span><span><a href="https://www.google.com/maps/search/'+encodeURIComponent(g.local)+'" target="_blank" rel="noopener">'+esc(g.local)+'</a></span></div>':'');
+  return '<button class="fechar" aria-label="Fechar" data-fechar>×</button><div class="corpo tit">'+
+    '<small class="dica">'+(enc?'Encerrado':'Agendado')+'</small><div class="big">'+(enc?p[0]+' x '+p[1]:'Eternus x '+esc(g.adversario))+'</div>'+
+    (enc?'<div style="color:var(--cinza)">Eternus FC x '+esc(g.adversario)+'</div>':'')+
+    '<div style="margin-top:12px">'+det+'</div>'+
+    (gs.length?'<h4>Gols</h4>'+gs.map(x=>x.tipo==='eternus'
+      ?'<div class="ev"><b>'+(x.minuto??'?')+'’</b><span>'+nomeJ(x.autor_id)+(x.assistencia_id?' <small>assist. '+nomeJ(x.assistencia_id)+'</small>':'')+'</span></div>'
+      :'<div class="ev adv"><b>'+(x.minuto??'?')+'’</b><span>Gol do '+esc(g.adversario)+'</span></div>').join(''):'')+
+    (tit.length?'<h4>Titulares</h4><div class="es">'+tit.map(chip).join('')+'</div>':'')+
+    (res.length?'<h4>Reservas</h4><div class="es">'+res.map(chip).join('')+'</div>':'')+
+    (g.observacoes?'<h4>Observações</h4><p style="margin:0;white-space:pre-line;color:var(--cinza)">'+esc(g.observacoes)+'</p>':'')+
+    '</div>';
+}
+(async()=>{
+  const r=await Promise.all([sb.from('jogos').select('*').order('data'),sb.from('jogo_escalacao').select('*'),sb.from('gols').select('*'),sb.from('jogadores').select('id,nome,numero')]);
+  if(r.some(x=>x.error)) return lista.innerHTML='<p class="vazio">Não foi possível carregar os jogos.</p>';
+  G=r[0].data;E=r[1].data;L=r[2].data;P=new Map(r[3].data.map(p=>[p.id,p]));
+  const prox=G.filter(g=>g.status!=='encerrado'),pass=G.filter(g=>g.status==='encerrado').reverse();
+  lista.innerHTML=G.length?
+    (prox.length?'<div class="jg-sec">Próximos jogos</div>'+prox.map(cartao).join(''):'')+
+    (pass.length?'<div class="jg-sec">Resultados</div>'+pass.map(cartao).join(''):''):'<p class="vazio">Jogos em breve.</p>';
+})();
+lista.onclick=e=>{const c=e.target.closest('.jg');if(!c)return;pdet.innerHTML=detalhe(G.find(x=>x.id==c.dataset.id));abrirModal('mdet')};
+</script></body></html>
