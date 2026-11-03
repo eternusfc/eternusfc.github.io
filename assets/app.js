@@ -97,7 +97,7 @@ function linksContato(c) {
   const dig = v => String(v || '').replace(/\D/g, '');
   const ig = String(c.instagram || '').replace(/^@/, '');
   const it = [];
-  if (c.whatsapp) it.push(['WhatsApp', c.whatsapp, `https://wa.me/${dig(c.whatsapp)}`]);
+  if (c.whatsapp) it.push(['WhatsApp', c.whatsapp, `https://wa.me/${zapNum(c.whatsapp)}`]);
   if (c.telefone) it.push(['Telefone', c.telefone, `tel:${dig(c.telefone)}`]);
   if (c.email) it.push(['E-mail', c.email, `mailto:${c.email}`]);
   if (ig) it.push(['Instagram', '@' + ig, `https://instagram.com/${ig}`]);
@@ -105,6 +105,13 @@ function linksContato(c) {
   if (c.treinos) it.push(['Treinos', c.treinos, null]);
   return it.map(([t, v, h]) => `<div class="info"><dt>${t}</dt><dd>${h ? `<a href="${esc(h)}" target="_blank" rel="noopener">${esc(v)}</a>` : esc(v)}</dd></div>`).join('');
 }
+
+const zapNum = v => {
+  let n = String(v || '').replace(/\D/g, '');
+  if (n.startsWith('00')) n = n.slice(2);
+  if (n && n.length <= 11) n = '55' + n;
+  return n;
+};
 
 /* ---------- pop-ups do site ---------- */
 function abrirModal(id) {

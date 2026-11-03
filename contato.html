@@ -53,7 +53,7 @@ function canais(c){
   const dig=v=>String(v||'').replace(/\D/g,'');
   const ig=String(c.instagram||'').replace(/^@/,'').trim();
   const l=[];
-  if(c.whatsapp) l.push({k:'whatsapp',t:'WhatsApp',v:c.whatsapp,h:'https://wa.me/'+dig(c.whatsapp)+'?text='+encodeURIComponent('Olá! Vim pelo site do Eternus FC.')});
+  if(c.whatsapp) l.push({k:'whatsapp',t:'WhatsApp',v:c.whatsapp,h:'https://wa.me/'+zapNum(c.whatsapp)+'?text='+encodeURIComponent('Olá! Vim pelo site do Eternus FC.')});
   if(c.instagram&&ig) l.push({k:'instagram',t:'Instagram',v:'@'+ig,h:'https://instagram.com/'+ig});
   if(c.email) l.push({k:'email',t:'E-mail',v:c.email,h:'mailto:'+c.email});
   if(c.telefone) l.push({k:'telefone',t:'Telefone',v:c.telefone,h:'tel:'+dig(c.telefone)});
