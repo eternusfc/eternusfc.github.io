@@ -1,11 +1,14 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Camisa – Admin Eternus FC</title><link rel="stylesheet" href="../assets/style.css?v=1793123906"><link id="tema" rel="stylesheet" href="../assets/tema.css?v=1">
-<style>.foto-campo.grande img,.foto-campo.grande .vazia{width:96px;height:120px;object-fit:cover}</style></head><body>
+<style>
+.foto-campo.grande{align-items:flex-start}
+.foto-campo.grande .vazia{width:96px;height:120px}
+.foto-campo.grande img{width:auto;height:auto;max-width:180px;max-height:220px;object-fit:contain}
+</style></head><body>
 <header id="nav"></header>
 <main><h2>Camisa</h2>
 <form id="f" class="box">
-<label>Foto da frente<span class="foto-campo grande"><span class="vazia" id="prev"></span><input id="arq" type="file" accept="image/*"></span></label>
-<label>Foto das costas<span class="foto-campo grande"><span class="vazia" id="prev2"></span><input id="arq2" type="file" accept="image/*"></span></label>
-<small class="dica">Use fotos no mesmo formato (de preferência 4:5, em pé) para as duas ficarem do mesmo tamanho.</small>
+<label>Foto da camisa<span class="foto-campo grande"><span class="vazia" id="prev"></span><input id="arq" type="file" accept="image/*"></span></label>
+<small class="dica">Envie uma só imagem. Ela aparece no site no tamanho e formato originais, sem cortes.</small>
 <label>Título<input id="titulo" required autocomplete="off" placeholder="Camisa oficial Eternus FC"></label>
 <label>Descrição<textarea id="descricao" rows="3" placeholder="Tecido, modelo, prazo de entrega…"></textarea></label>
 <div class="par dois"><label>Valor (R&#36;)<input id="valor" type="number" min="0" step="0.01" inputmode="decimal" required></label>
@@ -18,17 +21,16 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="../assets/config.js?v=1793123906"></script><script src="../assets/app.js?v=1793123906"></script><script>
 nav(true,'camisa');
 let atual=null;
-function previa(id,url){const el=document.getElementById(id);el.outerHTML=url?'<img id="'+id+'" alt="" src="'+esc(url)+'">':'<span class="vazia" id="'+id+'"></span>'}
-arq.onchange=()=>{const a=arq.files[0];previa('prev',a?URL.createObjectURL(a):atual?.foto_url)};
-arq2.onchange=()=>{const a=arq2.files[0];previa('prev2',a?URL.createObjectURL(a):atual?.foto_costas_url)};
+function previa(url){const el=document.getElementById('prev');el.outerHTML=url?'<img id="prev" alt="" src="'+esc(url)+'">':'<span class="vazia" id="prev"></span>'}
+arq.onchange=()=>{const a=arq.files[0];previa(a?URL.createObjectURL(a):atual?.foto_url)};
 exigeLogin().then(async()=>{
   const {data,error}=await sb.from('camisa').select('*').eq('id',1).maybeSingle();
   if(error) return aviso('Erro ao carregar: '+error.message,true);
   atual=data;
   if(data){titulo.value=data.titulo??'';descricao.value=data.descricao??'';valor.value=data.valor??'';tamanhos.value=data.tamanhos??'';whatsapp.value=data.whatsapp??'';ativo.checked=data.ativo}
-  previa('prev',data?.foto_url);previa('prev2',data?.foto_costas_url)});
+  previa(data?.foto_url)});
 async function enviar(input){
-  const blob=await comprimir(input.files[0]),caminho='camisa/'+crypto.randomUUID()+'.jpg';
+  const blob=await comprimir(input.files[0],1400),caminho='camisa/'+crypto.randomUUID()+'.jpg';
   const up=await sb.storage.from('fotos').upload(caminho,blob,{contentType:'image/jpeg'});
   if(up.error) throw up.error;
   return {caminho,url:sb.storage.from('fotos').getPublicUrl(caminho).data.publicUrl};
@@ -37,13 +39,14 @@ f.onsubmit=async e=>{e.preventDefault();
   salvar.disabled=true;
   const novos=[],antigos=[];
   try{
-    const d={id:1,titulo:titulo.value.trim(),descricao:descricao.value.trim()||null,valor:+valor.value,tamanhos:tamanhos.value.trim()||null,whatsapp:whatsapp.value.trim()||null,ativo:ativo.checked,foto_url:atual?.foto_url??null,foto_costas_url:atual?.foto_costas_url??null};
+    const d={id:1,titulo:titulo.value.trim(),descricao:descricao.value.trim()||null,valor:+valor.value,tamanhos:tamanhos.value.trim()||null,whatsapp:whatsapp.value.trim()||null,ativo:ativo.checked,foto_url:atual?.foto_url??null,foto_costas_url:null};
+    // a foto das costas deixou de existir: limpa o registro e apaga o arquivo antigo
+    if(atual?.foto_costas_url) antigos.push(caminhoFoto(atual.foto_costas_url));
     if(arq.files[0]){const r=await enviar(arq);novos.push(r.caminho);antigos.push(caminhoFoto(d.foto_url));d.foto_url=r.url}
-    if(arq2.files[0]){const r=await enviar(arq2);novos.push(r.caminho);antigos.push(caminhoFoto(d.foto_costas_url));d.foto_costas_url=r.url}
     const {error}=await sb.from('camisa').upsert(d);
     if(error){if(novos.length) await sb.storage.from('fotos').remove(novos);throw error}
     const lixo=antigos.filter(Boolean);if(lixo.length) await sb.storage.from('fotos').remove(lixo);
-    atual=d;arq.value='';arq2.value='';aviso('Camisa salva.');
+    atual=d;arq.value='';aviso('Camisa salva.');
   }catch(err){aviso('Erro ao salvar: '+err.message,true)}
   salvar.disabled=false};
 </script></body></html>
