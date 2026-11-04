@@ -32,12 +32,29 @@ function aplicarLogo(url) {
   }
 }
 
+function aplicarCodigo(url) {
+  const f = document.querySelector('footer');
+  if (!f) return;
+  let a = document.getElementById('codigoLink');
+  if (!url) { if (a) a.remove(); return; }
+  if (!a) {
+    a = document.createElement('a');
+    a.id = 'codigoLink'; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = 'Código de conduta'; a.style.marginRight = '14px';
+    f.prepend(a);
+  }
+  a.href = url;
+}
+
 async function carregarLogo() {
   try { aplicarLogo(localStorage.getItem('logo')); } catch (e) {}
   const { data } = await sb.from('configuracoes').select('logo_url').eq('id', 1).maybeSingle();
   const url = data?.logo_url || null;
   try { url ? localStorage.setItem('logo', url) : localStorage.removeItem('logo'); } catch (e) {}
   aplicarLogo(url);
+  const c = await sb.from('configuracoes').select('codigo_url').eq('id', 1).maybeSingle();
+  if (c.error) console.error('codigo_url:', c.error.message);
+  aplicarCodigo(c.data?.codigo_url || null);
 }
 
 /* ---------- login ---------- */

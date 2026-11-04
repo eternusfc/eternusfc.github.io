@@ -1,20 +1,29 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Configurações – Admin Eternus FC</title><link rel="stylesheet" href="../assets/style.css?v=1793123906"></head><body>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><title>Configurações – Admin Eternus FC</title><link rel="stylesheet" href="../assets/style.css?v=1793123906"><link id="tema" rel="stylesheet" href="../assets/tema.css?v=1"></head><body>
 <header id="nav"></header>
 <main><h2>Configurações</h2>
 <form id="f" class="box">
 <label>Logo do time<span class="foto-campo"><span class="vazia" id="prev"></span><input id="arq" type="file" accept="image/*"></span></label>
 <small class="dica">PNG com fundo transparente fica melhor. Aparece no menu, na página inicial e na aba do navegador.</small>
 <div class="acoes"><button class="btn" id="salvar">Salvar logo</button><button type="button" class="btn sec" id="remover" hidden>Remover logo</button></div>
+</form>
+
+<form id="fc" class="box" style="margin-top:16px">
+<label>Código de conduta (PDF)<input id="pdf" type="file" accept="application/pdf"></label>
+<small class="dica">Fica disponível para download no rodapé do site, para gestão e atletas. Máximo 15 MB.</small>
+<small class="dica" id="pdfAtual" hidden><a id="pdfLink" href="#" target="_blank" rel="noopener">Ver PDF atual</a></small>
+<div class="acoes"><button class="btn" id="salvarC">Salvar PDF</button><button type="button" class="btn sec" id="removerC" hidden>Remover PDF</button></div>
 </form></main><div id="aviso" class="aviso" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="../assets/config.js?v=1793123906"></script><script src="../assets/app.js?v=1793123906"></script><script>
 nav(true,'config');
-let atual=null;
+let atual=null,codigo=null;
 function previa(url){prev.outerHTML=url?'<img id="prev" alt="Logo" src="'+esc(url)+'">':'<span class="vazia" id="prev"></span>';remover.hidden=!atual}
+function mostrarCodigo(){pdfAtual.hidden=removerC.hidden=!codigo;if(codigo)pdfLink.href=codigo}
 arq.onchange=()=>{const a=arq.files[0];previa(a?URL.createObjectURL(a):atual)};
 exigeLogin().then(async()=>{
-  const {data}=await sb.from('configuracoes').select('logo_url').eq('id',1).maybeSingle();
-  atual=data?.logo_url||null;previa(atual)});
+  const {data}=await sb.from('configuracoes').select('logo_url,codigo_url').eq('id',1).maybeSingle();
+  atual=data?.logo_url||null;codigo=data?.codigo_url||null;previa(atual);mostrarCodigo()});
 async function apagarArquivo(url){const c=caminhoFoto(url);if(c)await sb.storage.from('fotos').remove([c])}
+
 f.onsubmit=async e=>{e.preventDefault();
   if(!arq.files[0]) return aviso('Escolha uma imagem primeiro.',true);
   salvar.disabled=true;
@@ -36,4 +45,29 @@ remover.onclick=async()=>{
   await apagarArquivo(atual);atual=null;arq.value='';previa(null);aplicarLogo(null);
   try{localStorage.removeItem('logo')}catch(e){}
   aviso('Logo removido.')};
+
+/* ---- código de conduta (PDF) ---- */
+fc.onsubmit=async e=>{e.preventDefault();
+  const a=pdf.files[0];
+  if(!a) return aviso('Escolha um PDF primeiro.',true);
+  if(a.type!=='application/pdf') return aviso('O arquivo precisa ser um PDF.',true);
+  if(a.size>15*1024*1024) return aviso('PDF maior que 15 MB.',true);
+  salvarC.disabled=true;
+  try{
+    const caminho='documentos/'+crypto.randomUUID()+'.pdf';
+    const up=await sb.storage.from('fotos').upload(caminho,a,{contentType:'application/pdf'});
+    if(up.error) throw up.error;
+    const url=sb.storage.from('fotos').getPublicUrl(caminho).data.publicUrl;
+    const {error}=await sb.from('configuracoes').upsert({id:1,codigo_url:url});
+    if(error){await sb.storage.from('fotos').remove([caminho]);throw error}
+    await apagarArquivo(codigo);codigo=url;pdf.value='';mostrarCodigo();
+    aviso('PDF salvo.');
+  }catch(err){aviso('Erro ao salvar: '+err.message,true)}
+  salvarC.disabled=false};
+removerC.onclick=async()=>{
+  if(!confirm('Remover o PDF do site?'))return;
+  const {error}=await sb.from('configuracoes').upsert({id:1,codigo_url:null});
+  if(error) return aviso('Erro ao remover: '+error.message,true);
+  await apagarArquivo(codigo);codigo=null;pdf.value='';mostrarCodigo();
+  aviso('PDF removido.')};
 </script></body></html>
